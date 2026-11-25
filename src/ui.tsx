@@ -1,15 +1,19 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
 
+// Палитра из наброска Emma: тёмно-фиолетовый, лавандовый, кремовый, персиковый.
 export const C = {
-  bg: "#F6F7FB",
+  bg: "#F7F2F8",
   card: "#FFFFFF",
-  text: "#1B1E2B",
-  muted: "#6B7088",
-  primary: "#2E7D5B",
-  primaryLight: "#E3F3EB",
-  danger: "#C0392B",
-  border: "#E3E5EE",
+  text: "#2E2747",
+  muted: "#7C7396",
+  primary: "#5B4B8A",
+  primaryLight: "#ECE6F6",
+  lilac: "#A99BD6",
+  cream: "#F7EBD9",
+  peach: "#F2CFC4",
+  danger: "#C2556A",
+  border: "#E6DEF0",
 };
 
 export function Card({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
@@ -41,8 +45,8 @@ export const s = StyleSheet.create({
   h2: { fontSize: 18, fontWeight: "700", color: C.text },
   p: { fontSize: 16, color: C.text, lineHeight: 22 },
   muted: { fontSize: 14, color: C.muted },
-  card: { backgroundColor: C.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border, gap: 8 },
-  btn: { backgroundColor: C.primary, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16, alignItems: "center" },
+  card: { backgroundColor: C.card, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: C.border, gap: 8 },
+  btn: { backgroundColor: C.primary, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, alignItems: "center" },
   ghost: { backgroundColor: C.primaryLight },
   btnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   input: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 12, fontSize: 16, color: C.text },
