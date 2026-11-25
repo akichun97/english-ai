@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Keyboard, Pressable, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { LESSONS, Lesson } from "./src/data/lessons";
@@ -14,11 +14,11 @@ import { SettingsScreen } from "./src/screens/SettingsScreen";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 
 type Tab = "home" | "chat" | "tests" | "settings";
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "home", label: "Уроки", icon: "📚" },
-  { id: "chat", label: "Разговор", icon: "💬" },
-  { id: "tests", label: "Тесты", icon: "📝" },
-  { id: "settings", label: "Настройки", icon: "⚙️" },
+const TABS: { id: Tab; label: string }[] = [
+  { id: "home", label: "Уроки" },
+  { id: "chat", label: "Разговор" },
+  { id: "tests", label: "Тесты" },
+  { id: "settings", label: "Настройки" },
 ];
 
 export default function App() {
@@ -26,7 +26,15 @@ export default function App() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
 
+  const [keyboard, setKeyboard] = useState(false);
+
   useEffect(() => { loadProgress().then(setProgress); }, []);
+  // Пока открыта клавиатура, нижнее меню прячем, чтобы поле ввода было видно.
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboard(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboard(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   function update(fn: (p: Progress) => Progress) {
     setProgress((p) => {
@@ -69,14 +77,16 @@ export default function App() {
           {tab === "tests" && <TestsScreen level={progress.level} onLevel={setLevel} onXp={gainXp} />}
           {tab === "settings" && <SettingsScreen level={progress.level} onLevel={setLevel} />}
         </View>
-        <View style={{ flexDirection: "row", borderTopWidth: 1, borderColor: C.border, backgroundColor: C.card }}>
+        {!keyboard && <View style={{ flexDirection: "row", borderTopWidth: 1, borderColor: C.border, backgroundColor: C.card }}>
           {TABS.map((t) => (
-            <Pressable key={t.id} onPress={() => setTab(t.id)} style={{ flex: 1, alignItems: "center", paddingVertical: 8 }}>
-              <Text style={{ fontSize: 22 }}>{t.icon}</Text>
+            <Pressable key={t.id} onPress={() => setTab(t.id)} style={{ flex: 1, alignItems: "center", paddingVertical: 10, gap: 4 }}>
+              {/* Одинаковые круги: активная вкладка закрашена */}
+              <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2,
+                borderColor: tab === t.id ? C.primary : C.muted, backgroundColor: tab === t.id ? C.primary : "transparent" }} />
               <Text style={{ fontSize: 12, color: tab === t.id ? C.primary : C.muted, fontWeight: tab === t.id ? "700" : "400" }}>{t.label}</Text>
             </Pressable>
           ))}
-        </View>
+        </View>}
       </SafeAreaView>
     </SafeAreaProvider>
   );
