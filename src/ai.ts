@@ -3,6 +3,7 @@
 // хранилище телефона (SecureStore) и никуда, кроме Anthropic, не отправляется.
 import Anthropic from "@anthropic-ai/sdk";
 import * as SecureStore from "expo-secure-store";
+import { isBeginner, LangId, LANGS } from "./lang";
 
 const KEY_NAME = "anthropic_api_key";
 export const MODEL = "claude-opus-5-5";
@@ -82,13 +83,28 @@ export async function askJson<T>(system: string, prompt: string): Promise<T> {
   return JSON.parse(text.slice(start, end + 1)) as T;
 }
 
-export function teacherPrompt(level: string, mode: string): string {
-  return `You are Emma, a warm, patient English teacher in a mobile app for Russian speakers.
-Student level (CEFR): ${level}. Lesson mode: ${mode}.
-Rules:
-- Talk mostly in English, using vocabulary and grammar suited to the student's level.
+export function teacherPrompt(lang: LangId, level: string, mode: string): string {
+  const L = LANGS[lang];
+  const common = `Lesson mode: ${mode}.
 - Keep replies short (2-4 sentences) and always end with a question or a task, so the conversation keeps going.
 - When the student makes a mistake, add a final line starting with "✏️ " that shows the corrected sentence and a very short explanation in Russian.
-- If the student writes in Russian or asks for help, briefly explain in Russian, then return to English.
-- Be encouraging, never judgmental.`;
+- Be warm and encouraging, never judgmental. Do not use markdown.`;
+  if (lang === "ja") {
+    const beginner = isBeginner(lang, level);
+    return `You are Emma, a warm, patient Japanese teacher in a mobile app for Russian speakers.
+Student level (JLPT): ${level}.
+Rules:
+- ${beginner
+      ? "The student is a beginner. Speak mostly Russian. Introduce only 1-2 short Japanese phrases per reply."
+      : "Speak mostly Japanese suited to the level; add Russian explanations only for hard points."}
+- Always write Japanese in kana (kanji only with furigana-level words for N3+), followed by romaji in parentheses and a Russian translation, e.g.: こんにちは (konnichiwa) — здравствуйте.
+- The student may answer in Russian, in romaji or in Japanese. Understand any of them and show how to say it correctly in Japanese.
+${common}`;
+  }
+  return `You are Emma, a warm, patient ${L.nameEn} teacher in a mobile app for Russian speakers.
+Student level (CEFR): ${level}.
+Rules:
+- Talk mostly in ${L.nameEn}, using vocabulary and grammar suited to the student's level.
+- If the student writes in Russian or asks for help, briefly explain in Russian, then return to ${L.nameEn}.
+${common}`;
 }

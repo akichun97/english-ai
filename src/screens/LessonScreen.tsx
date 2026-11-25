@@ -1,17 +1,20 @@
 import React, { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import * as Speech from "expo-speech";
 import { askJson, askTeacher } from "../ai";
+import { useApp } from "../state";
+import { speak as speakText } from "../voice";
 import { Exercise, Lesson } from "../data/lessons";
 import { Button, C, Card, PlayButton, s } from "../ui";
 
-const speak = (t: string) => { Speech.stop(); Speech.speak(t, { language: "en-US", rate: 0.9 }); };
+
 
 type Check = { correct: boolean; feedback: string; corrected?: string };
 
 export function LessonScreen({
-  lesson, level, onFinish, onBack,
-}: { lesson: Lesson; level: string; onFinish: (xp: number) => void; onBack: () => void }) {
+  lesson, onFinish, onBack,
+}: { lesson: Lesson; onFinish: (xp: number) => void; onBack: () => void }) {
+  const { lang, level } = useApp();
+  const speak = (t: string) => speakText(t, lang, { rate: 0.85 });
   const [i, setI] = useState(-1); // -1 = теория
   const [picked, setPicked] = useState<number | null>(null);
   const [text, setText] = useState("");
@@ -27,7 +30,7 @@ export function LessonScreen({
   /** Правильное предложение для текущего задания (для озвучки и объяснения). */
   function rightSentence(): string | null {
     if (!ex) return null;
-    if (ex.kind === "choice") return ex.question.replace("___", ex.options[ex.answer]);
+    if (ex.kind === "choice") return ex.question.replace(/___|＿/, ex.options[ex.answer]);
     if (ex.kind === "translate") return check?.corrected || ex.example;
     return check?.corrected || null;
   }
@@ -40,11 +43,11 @@ export function LessonScreen({
         : ex.kind === "translate" ? `Перевод «${ex.ru}» → ${ex.example}` : ex.task;
       const answer = ex.kind === "choice" ? (picked !== null ? ex.options[picked] : "") : text;
       const reply = await askTeacher(
-        `Ты Emma, преподаватель английского для русскоговорящего ученика уровня ${level}. Тема урока: ${lesson.title}. ` +
+        `Ты Emma, преподаватель языка (${lang.name.toLowerCase()}) для русскоговорящего ученика уровня ${level}. Тема урока: ${lesson.title}. ` +
           "Объясняй по-русски, просто и коротко (до 6 строк), без markdown.",
         [{ role: "user", content:
           `Задание: ${task}\nМой ответ: ${answer}\nПравильный вариант: ${rightSentence() ?? "-"}\n` +
-          "Объясни: 1) почему правильно именно так (правило), 2) как это читается: транскрипция всего предложения и на что обратить внимание в произношении." }],
+          (lang.id === "ja" ? "Объясни: 1) почему правильно именно так (правило), 2) как это читается: ромадзи всей фразы и на что обратить внимание в произношении." : "Объясни: 1) почему правильно именно так (правило), 2) как это читается: транскрипция всего предложения и на что обратить внимание в произношении.") }],
         1500,
       );
       setWhy(reply);
@@ -59,9 +62,9 @@ export function LessonScreen({
     if (!ex || ex.kind === "choice") return;
     setBusy(true);
     try {
-      const task = ex.kind === "translate" ? `Translate into English: "${ex.ru}" (reference: "${ex.example}")` : ex.task;
+      const task = ex.kind === "translate" ? `Translate into ${lang.nameEn}: "${ex.ru}" (reference: "${ex.example}")` : ex.task;
       const r = await askJson<Check>(
-        `You check answers of a ${level} English learner. Feedback in Russian, 1-2 sentences, kind tone.`,
+        `You check answers of a ${level} ${lang.nameEn} learner (native Russian). Feedback in Russian, 1-2 sentences, kind tone.` + (lang.id === "ja" ? " Accept answers written in kana, kanji or romaji. In \"corrected\" give Japanese with romaji in parentheses." : ""),
         `Task: ${task}\nStudent answer: "${text}"\nReturn {"correct": boolean, "feedback": string, "corrected": string}. Minor typos are acceptable.`,
       );
       setCheck(r);
@@ -113,12 +116,12 @@ export function LessonScreen({
               <PlayButton onPress={() => speak(e.en)} />
               <View style={{ flex: 1 }}>
                 <Text style={[s.p, { fontWeight: "600" }]}>{e.en}</Text>
-                <Text style={{ color: C.primary, fontSize: 15 }}>{e.ipa}</Text>
+                <Text style={{ color: C.primary, fontSize: 15 }}>{lang.id === "ja" ? e.ipa : e.ipa}</Text>
                 <Text style={s.muted}>{e.ru}</Text>
               </View>
             </Card>
           ))}
-          <Text style={s.muted}>Остались вопросы? Спросите Emma во вкладке «Разговор».</Text>
+          <Text style={s.muted}>Примеры попадут в ваш словарь после урока. Остались вопросы? Спросите Emma во вкладке «Разговор».</Text>
           <Button title="Начать задания" onPress={next} />
         </>
       ) : ex ? (
@@ -140,7 +143,7 @@ export function LessonScreen({
             <>
               <Text style={s.h2}>{ex.kind === "translate" ? `Переведите: «${ex.ru}»` : ex.task}</Text>
               <TextInput style={[s.input, { minHeight: 80 }]} multiline value={text} onChangeText={setText}
-                placeholder="Ваш ответ по-английски" editable={!answered} />
+                placeholder={lang.placeholder} placeholderTextColor={C.muted} editable={!answered} />
               {!answered && <Button title={busy ? "ИИ проверяет…" : "Проверить с ИИ"} onPress={submitText} disabled={busy || !text.trim()} />}
               {busy && <ActivityIndicator />}
             </>

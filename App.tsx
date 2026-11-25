@@ -1,34 +1,63 @@
 import React, { useEffect, useState } from "react";
-import { Keyboard, Pressable, Text, View } from "react-native";
+import { Appearance, Keyboard, Pressable, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { LESSONS, Lesson } from "./src/data/lessons";
-import { LEVELS } from "./src/data/tests";
-import { addXp, loadProgress, maybeLevelUp, Progress, saveProgress } from "./src/storage";
-import { C, s } from "./src/ui";
+import { Lesson, lessonsFor } from "./src/data/lessons";
+import { AppProvider, useApp } from "./src/state";
+import { addXp, maybeLevelUp } from "./src/storage";
+import { applyTheme, C, isDark, s } from "./src/ui";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { LessonScreen } from "./src/screens/LessonScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
-import { TestsScreen } from "./src/screens/TestsScreen";
-import { SettingsScreen } from "./src/screens/SettingsScreen";
+import { PracticeScreen } from "./src/screens/PracticeScreen";
+import { ProfileScreen } from "./src/screens/ProfileScreen";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 
-type Tab = "home" | "chat" | "tests" | "settings";
+type Tab = "home" | "chat" | "practice" | "profile";
 const TABS: { id: Tab; label: string }[] = [
   { id: "home", label: "Уроки" },
   { id: "chat", label: "Разговор" },
-  { id: "tests", label: "Тесты" },
-  { id: "settings", label: "Настройки" },
+  { id: "practice", label: "Практика" },
+  { id: "profile", label: "Профиль" },
 ];
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>("home");
+  const [system, setSystem] = useState(Appearance.getColorScheme());
+  useEffect(() => {
+    const sub = Appearance.addChangeListener(({ colorScheme }) => setSystem(colorScheme));
+    return () => sub.remove();
+  }, []);
+
+  return (
+    <SafeAreaProvider>
+      <AppProvider>
+        {(p) => {
+          const dark = p.theme === "dark" || (p.theme === "system" && system === "dark");
+          applyTheme(dark);
+          // key заставляет перерисовать все экраны с новыми цветами.
+          return (
+            <SafeAreaView key={dark ? "dark" : "light"} style={s.screen} edges={["top", "bottom"]}>
+              <StatusBar style={isDark ? "light" : "dark"} />
+              {p.onboarded ? <Main /> : <OnboardingScreen />}
+            </SafeAreaView>
+          );
+        }}
+      </AppProvider>
+    </SafeAreaProvider>
+  );
+}
+
+// Помним вкладку между перерисовками (например, при смене темы).
+let lastTab: Tab = "home";
+
+function Main() {
+  const { update, unlocked, p } = useApp();
+  const [tab, setTabState] = useState<Tab>(lastTab);
+  const setTab = (t: Tab) => { lastTab = t; setTabState(t); };
   const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [progress, setProgress] = useState<Progress | null>(null);
-
   const [keyboard, setKeyboard] = useState(false);
+  const { addWords } = useApp();
 
-  useEffect(() => { loadProgress().then(setProgress); }, []);
   // Пока открыта клавиатура, нижнее меню прячем, чтобы поле ввода было видно.
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", () => setKeyboard(true));
@@ -36,48 +65,35 @@ export default function App() {
     return () => { show.remove(); hide.remove(); };
   }, []);
 
-  function update(fn: (p: Progress) => Progress) {
-    setProgress((p) => {
-      if (!p) return p;
-      const n = fn(p);
-      saveProgress(n);
-      return n;
-    });
-  }
-  const gainXp = (xp: number) => update((p) => addXp(p, xp));
-  const setLevel = (level: string) => update((p) => ({ ...p, level }));
-
-  if (!progress) return null;
-
-  if (!progress.placementDone) {
-    return (
-      <SafeAreaProvider>
-        <SafeAreaView style={s.screen} edges={["top", "bottom"]}>
-          <StatusBar style="dark" />
-          <OnboardingScreen onFinish={(level) => update((p) => ({ ...p, level, placementDone: true }))} />
-        </SafeAreaView>
-      </SafeAreaProvider>
-    );
-  }
+  // При смене языка закрываем открытый урок.
+  useEffect(() => setLesson(null), [p.lang]);
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={s.screen} edges={["top", "bottom"]}>
-        <StatusBar style="dark" />
-        <View style={{ flex: 1 }}>
-          {tab === "home" && !lesson && <HomeScreen progress={progress} onOpen={setLesson} />}
-          {tab === "home" && lesson && (
-            <LessonScreen lesson={lesson} level={progress.level} onBack={() => setLesson(null)}
-              onFinish={(xp) => {
-                update((p) => maybeLevelUp({ ...addXp(p, xp), doneLessons: [...new Set([...p.doneLessons, lesson.id])] }, LESSONS, LEVELS));
-                setLesson(null);
-              }} />
-          )}
-          {tab === "chat" && <ChatScreen level={progress.level} onXp={gainXp} />}
-          {tab === "tests" && <TestsScreen level={progress.level} onLevel={setLevel} onXp={gainXp} />}
-          {tab === "settings" && <SettingsScreen level={progress.level} onLevel={setLevel} />}
+    <View style={{ flex: 1 }}>
+      {unlocked && (
+        <View style={{ position: "absolute", top: 8, left: 16, right: 16, zIndex: 10, backgroundColor: C.primary, borderRadius: 16, padding: 14 }}>
+          <Text style={{ color: C.onPrimary, fontWeight: "700", fontSize: 16 }}>Новое достижение: {unlocked.title}</Text>
+          <Text style={{ color: C.onPrimary }}>{unlocked.outfit ? "Открыт новый образ Emma! Выберите его в профиле." : unlocked.desc}</Text>
         </View>
-        {!keyboard && <View style={{ flexDirection: "row", borderTopWidth: 1, borderColor: C.border, backgroundColor: C.card }}>
+      )}
+      <View style={{ flex: 1 }}>
+        {tab === "home" && !lesson && <HomeScreen onOpen={setLesson} />}
+        {tab === "home" && lesson && (
+          <LessonScreen lesson={lesson} onBack={() => setLesson(null)}
+            onFinish={(xp) => {
+              const id = lesson.id;
+              update((x) => maybeLevelUp({ ...addXp(x, xp), doneLessons: [...new Set([...x.doneLessons, id])] }, lessonsFor(x.lang)));
+              // Фразы из примеров урока попадают в словарь.
+              addWords(lesson.examples.map((e) => ({ word: e.en, translation: e.ru, reading: e.ipa })));
+              setLesson(null);
+            }} />
+        )}
+        {tab === "chat" && <ChatScreen />}
+        {tab === "practice" && <PracticeScreen />}
+        {tab === "profile" && <ProfileScreen />}
+      </View>
+      {!keyboard && (
+        <View style={{ flexDirection: "row", borderTopWidth: 1, borderColor: C.border, backgroundColor: C.card }}>
           {TABS.map((t) => (
             <Pressable key={t.id} onPress={() => setTab(t.id)} style={{ flex: 1, alignItems: "center", paddingVertical: 10, gap: 4 }}>
               {/* Одинаковые круги: активная вкладка закрашена */}
@@ -86,8 +102,8 @@ export default function App() {
               <Text style={{ fontSize: 12, color: tab === t.id ? C.primary : C.muted, fontWeight: tab === t.id ? "700" : "400" }}>{t.label}</Text>
             </Pressable>
           ))}
-        </View>}
-      </SafeAreaView>
-    </SafeAreaProvider>
+        </View>
+      )}
+    </View>
   );
 }

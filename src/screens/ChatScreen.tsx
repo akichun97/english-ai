@@ -1,41 +1,50 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Easing, Image, KeyboardAvoidingView, Pressable, ScrollView, ScrollViewInstance, Text, TextInput, View } from "react-native";
-import * as Speech from "expo-speech";
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from "expo-speech-recognition";
 import { askTeacher, ChatMessage, teacherPrompt } from "../ai";
-import { EMMA, EmmaMood } from "../emma";
-import { Button, C, s } from "../ui";
+import { EMMA, EmmaMood, outfit } from "../emma";
+import { isBeginner } from "../lang";
+import { useApp } from "../state";
+import { addVoiceTime, bump } from "../storage";
+import { speak, stopSpeaking } from "../voice";
+import { Button, C, Chip, MicButton, s } from "../ui";
 import { EmmaProfile } from "./EmmaProfile";
+import { SessionReview } from "./SessionReview";
 
 const MODES = [
   { id: "free", label: "Свободный разговор", mode: "free conversation on any topic the student likes" },
   { id: "roleplay", label: "Ролевая игра", mode: "role-play: you are a café waiter, the student is a customer" },
   { id: "interview", label: "Собеседование", mode: "job interview practice; you are the interviewer" },
-  { id: "ielts", label: "IELTS Speaking", mode: "IELTS Speaking test simulation (Parts 1-3); at the end give an estimated band score with explanation in Russian" },
+  { id: "exam", label: "Устный экзамен", mode: "speaking exam simulation (IELTS Speaking for English, JLPT-style oral practice for Japanese); at the end give an estimated score with explanation in Russian" },
 ];
 
-/** Английская часть ответа и строка с исправлением отдельно. */
+/** Основная часть ответа и строка с исправлением отдельно. */
 function splitReply(text: string): { main: string; fix: string | null } {
   const [main, ...rest] = text.split("✏️");
   return { main: main.trim(), fix: rest.length ? rest.join("").trim() : null };
 }
 
-export function ChatScreen({ level, onXp }: { level: string; onXp: (xp: number) => void }) {
+export function ChatScreen() {
+  const { p, lang, level, update, gainXp } = useApp();
   const [mode, setMode] = useState(MODES[0]);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState(false);
-  // Голосовой урок: на экране Emma, её ответы звучат вслух, после ответа микрофон включается снова.
+  const [review, setReview] = useState<ChatMessage[] | null>(null);
+  // Голосовой урок: Emma на экране, её ответы звучат вслух, после ответа микрофон включается снова.
   const [voice, setVoice] = useState(false);
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  // На каком языке ученик говорит в микрофон. Новичку в японском удобнее по-русски.
+  const [micLang, setMicLang] = useState(lang.id === "ja" && isBeginner(lang.id, level) ? "ru-RU" : lang.speech);
   const scroll = useRef<ScrollViewInstance>(null);
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
   const msgsRef = useRef(msgs);
   msgsRef.current = msgs;
+  const voiceStart = useRef(0);
 
   useSpeechRecognitionEvent("start", () => setListening(true));
   useSpeechRecognitionEvent("end", () => setListening(false));
@@ -51,18 +60,20 @@ export function ChatScreen({ level, onXp }: { level: string; onXp: (xp: number) 
     else setError(`Не удалось распознать речь: ${event.message}`);
   });
 
-  useEffect(() => () => { Speech.stop(); ExpoSpeechRecognitionModule.abort(); }, []);
+  useEffect(() => () => { stopSpeaking(); ExpoSpeechRecognitionModule.abort(); }, []);
+  // Новый язык — новый разговор.
+  useEffect(() => { setMsgs([]); setVoice(false); setMicLang(lang.id === "ja" && isBeginner(lang.id, level) ? "ru-RU" : lang.speech); }, [lang.id]);
 
   async function listen() {
     setError(null);
-    Speech.stop();
+    stopSpeaking();
     setSpeaking(false);
     const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!perm.granted) {
       setError("Разрешите приложению доступ к микрофону в настройках телефона.");
       return;
     }
-    ExpoSpeechRecognitionModule.start({ lang: "en-US", interimResults: true, continuous: false });
+    ExpoSpeechRecognitionModule.start({ lang: micLang, interimResults: true, continuous: false });
   }
 
   function micPress() {
@@ -75,15 +86,12 @@ export function ChatScreen({ level, onXp }: { level: string; onXp: (xp: number) 
 
   function say(text: string) {
     setSpeaking(true);
-    Speech.speak(splitReply(text).main, {
-      language: "en-US",
-      rate: 0.95,
+    speak(splitReply(text).main, lang, {
       onDone: () => {
         setSpeaking(false);
         if (voiceRef.current) listen();
       },
-      onStopped: () => setSpeaking(false),
-      onError: () => setSpeaking(false),
+      onStop: () => setSpeaking(false),
     });
   }
 
@@ -94,9 +102,9 @@ export function ChatScreen({ level, onXp }: { level: string; onXp: (xp: number) 
     setBusy(true);
     setError(null);
     try {
-      const reply = await askTeacher(teacherPrompt(level, mode.mode), next);
+      const reply = await askTeacher(teacherPrompt(lang.id, level, mode.mode), next);
       setMsgs([...next, { role: "assistant", content: reply }]);
-      onXp(2);
+      gainXp(2);
       if (voiceRef.current) say(reply);
     } catch (e) {
       setError((e as Error).message);
@@ -107,7 +115,7 @@ export function ChatScreen({ level, onXp }: { level: string; onXp: (xp: number) 
   }
 
   function start(m: (typeof MODES)[number]) {
-    Speech.stop();
+    stopSpeaking();
     ExpoSpeechRecognitionModule.abort();
     setMode(m);
     setMsgs([]);
@@ -117,14 +125,25 @@ export function ChatScreen({ level, onXp }: { level: string; onXp: (xp: number) 
     setProfile(false);
     setVoice(true);
     voiceRef.current = true;
+    voiceStart.current = Date.now();
     if (msgsRef.current.length === 0) send("Hi! Let's start a spoken conversation.", []);
     else listen();
   }
 
+  /** Завершение голосового урока: считаем время и показываем разбор. */
   function stopVoice() {
     setVoice(false);
-    Speech.stop();
+    voiceRef.current = false;
+    stopSpeaking();
     ExpoSpeechRecognitionModule.abort();
+    const sec = (Date.now() - voiceStart.current) / 1000;
+    const spoke = msgs.filter((m) => m.role === "user").length > 1;
+    update((x) => (spoke ? bump(addVoiceTime(x, sec), "voiceLessons") : addVoiceTime(x, sec)));
+    if (spoke) setReview(msgs);
+  }
+
+  if (review) {
+    return <SessionReview messages={review} onClose={() => setReview(null)} />;
   }
 
   if (profile) {
@@ -132,57 +151,57 @@ export function ChatScreen({ level, onXp }: { level: string; onXp: (xp: number) 
   }
 
   const lastReply = [...msgs].reverse().find((m) => m.role === "assistant");
+  const userTurns = msgs.filter((m) => m.role === "user").length;
 
   const modeChips = (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 8, gap: 8 }} style={{ flexGrow: 0 }}>
-      {MODES.map((m) => (
-        <Pressable key={m.id} onPress={() => start(m)}
-          style={[s.option, { paddingVertical: 6, borderRadius: 20 }, m.id === mode.id && { borderColor: C.primary, backgroundColor: C.primaryLight }]}>
-          <Text style={{ color: C.text }}>{m.label}</Text>
-        </Pressable>
-      ))}
+      {MODES.map((m) => <Chip key={m.id} label={m.label} active={m.id === mode.id} onPress={() => start(m)} />)}
     </ScrollView>
-  );
-
-  const header = (
-    <Pressable onPress={() => setProfile(true)}
-      style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12 }}>
-      <Image source={EMMA.happy} style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: C.lilac }} />
-      <View style={{ flex: 1 }}>
-        <Text style={s.h2}>Emma</Text>
-        <Text style={s.muted}>Твой AI-наставник · профиль</Text>
-      </View>
-      {!voice && (
-        <Pressable onPress={startVoice} style={{ backgroundColor: C.primary, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 }}>
-          <Text style={{ color: "#fff", fontWeight: "600" }}>Голосом</Text>
-        </Pressable>
-      )}
-    </Pressable>
   );
 
   if (voice) {
     const mood: EmmaMood = error ? "sleep" : listening ? "surprised" : busy ? "thinking"
       : lastReply && splitReply(lastReply.content).fix ? "calm" : speaking ? "happy" : lastReply ? "love" : "happy";
-    const status = error ? "Что-то пошло не так" : listening ? "Слушаю… говорите по-английски" : busy ? "Emma думает…"
+    const status = error ? "Что-то пошло не так" : listening ? "Слушаю…" : busy ? "Emma думает…"
       : speaking ? "Emma говорит" : "Нажмите на микрофон и говорите";
+    const micOptions = [{ code: lang.speech, label: lang.id === "ja" ? "Говорю по-японски" : "Говорю по-английски" }, { code: "ru-RU", label: "По-русски" }];
     return (
       <VoiceCall mood={mood} status={status} active={listening || speaking} header={modeChips}
         caption={lastReply ? splitReply(lastReply.content) : null} transcript={listening ? input : ""}
         error={error} listening={listening} busy={busy}
+        micChips={micOptions.map((o) => <Chip key={o.code} label={o.label} active={micLang === o.code} onPress={() => setMicLang(o.code)} />)}
         onMic={micPress} onEnd={stopVoice} onReplay={() => lastReply && say(lastReply.content)} />
     );
   }
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-      {header}
+      <Pressable onPress={() => setProfile(true)} style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12 }}>
+        <Image source={outfit(p.outfit).face} style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: C.lilac }} />
+        <View style={{ flex: 1 }}>
+          <Text style={s.h2}>Emma</Text>
+          <Text style={s.muted}>{lang.name} · профиль</Text>
+        </View>
+        {userTurns >= 2 && (
+          <Pressable onPress={() => setReview(msgs)} style={{ backgroundColor: C.primaryLight, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8 }}>
+            <Text style={{ color: C.primary, fontWeight: "600" }}>Итог</Text>
+          </Pressable>
+        )}
+        <Pressable onPress={startVoice} style={{ backgroundColor: C.primary, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 }}>
+          <Text style={{ color: C.onPrimary, fontWeight: "600" }}>Голосом</Text>
+        </Pressable>
+      </Pressable>
       {modeChips}
       <ScrollView ref={scroll} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => scroll.current?.scrollToEnd()}>
         {msgs.length === 0 && (
           <View style={{ gap: 12, alignItems: "center" }}>
             <Image source={EMMA.reading} style={{ width: 160, height: 250, borderRadius: 24 }} resizeMode="cover" />
-            <Text style={[s.p, { textAlign: "center" }]}>Привет! Я Emma. Пиши мне по-английски или поговорим голосом. Я поправлю ошибки и объясню их по-русски.</Text>
+            <Text style={[s.p, { textAlign: "center" }]}>
+              {lang.id === "ja"
+                ? "Привет! Я Emma. Отвечай как удобно: по-японски, латиницей или по-русски. Я покажу, как сказать правильно."
+                : "Привет! Я Emma. Пиши мне по-английски или поговорим голосом. Я поправлю ошибки и объясню их по-русски."}
+            </Text>
             <View style={{ alignSelf: "stretch", gap: 12 }}>
               <Button title="Голосовой урок" onPress={startVoice} disabled={busy} />
               <Button title="Начать переписку" kind="ghost" onPress={() => send("Hi! Let's start.", [])} disabled={busy} />
@@ -191,11 +210,11 @@ export function ChatScreen({ level, onXp }: { level: string; onXp: (xp: number) 
         )}
         {msgs.map((m, n) => (
           <View key={n} style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "88%" }}>
-            {m.role === "assistant" && <Image source={EMMA.happy} style={{ width: 28, height: 28, borderRadius: 14 }} />}
+            {m.role === "assistant" && <Image source={outfit(p.outfit).face} style={{ width: 28, height: 28, borderRadius: 14 }} />}
             <Pressable onLongPress={() => m.role === "assistant" && say(m.content)}
               style={{ flexShrink: 1, backgroundColor: m.role === "user" ? C.primary : C.card, borderRadius: 18, padding: 12,
                 borderWidth: m.role === "user" ? 0 : 1, borderColor: C.border }}>
-              <Text style={{ color: m.role === "user" ? "#fff" : C.text, fontSize: 16, lineHeight: 22 }}>{m.content}</Text>
+              <Text style={{ color: m.role === "user" ? C.onPrimary : C.text, fontSize: 16, lineHeight: 22 }}>{m.content}</Text>
             </Pressable>
           </View>
         ))}
@@ -205,16 +224,15 @@ export function ChatScreen({ level, onXp }: { level: string; onXp: (xp: number) 
       </ScrollView>
       <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 12, borderTopWidth: 1, borderColor: C.border, backgroundColor: C.card }}>
         <TextInput style={[s.input, { flex: 1, maxHeight: 120 }]} value={input} onChangeText={setInput}
-          placeholder="Type in English…" placeholderTextColor={C.muted} multiline />
+          placeholder={lang.placeholder} placeholderTextColor={C.muted} multiline />
         {input.trim() && !listening ? (
-          <RoundButton onPress={() => send(input.trim())} disabled={busy} filled>
+          <Pressable onPress={() => send(input.trim())} disabled={busy}
+            style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: C.primary, alignItems: "center", justifyContent: "center", opacity: busy ? 0.6 : 1 }}>
             <View style={{ width: 0, height: 0, borderTopWidth: 8, borderBottomWidth: 8, borderLeftWidth: 13,
-              borderTopColor: "transparent", borderBottomColor: "transparent", borderLeftColor: "#fff", marginLeft: 3 }} />
-          </RoundButton>
+              borderTopColor: "transparent", borderBottomColor: "transparent", borderLeftColor: C.onPrimary, marginLeft: 3 }} />
+          </Pressable>
         ) : (
-          <RoundButton onPress={micPress} disabled={busy} filled={listening}>
-            <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: listening ? "#fff" : C.primary }} />
-          </RoundButton>
+          <MicButton onPress={micPress} active={listening} disabled={busy} size={48} />
         )}
       </View>
     </KeyboardAvoidingView>
@@ -222,10 +240,10 @@ export function ChatScreen({ level, onXp }: { level: string; onXp: (xp: number) 
 }
 
 /** Экран голосового урока: Emma в центре, её настроение меняется по ходу разговора. */
-function VoiceCall({ mood, status, active, header, caption, transcript, error, listening, busy, onMic, onEnd, onReplay }: {
+function VoiceCall({ mood, status, active, header, caption, transcript, error, listening, busy, micChips, onMic, onEnd, onReplay }: {
   mood: EmmaMood; status: string; active: boolean; header: React.ReactNode;
   caption: { main: string; fix: string | null } | null; transcript: string; error: string | null;
-  listening: boolean; busy: boolean; onMic: () => void; onEnd: () => void; onReplay: () => void;
+  listening: boolean; busy: boolean; micChips: React.ReactNode; onMic: () => void; onEnd: () => void; onReplay: () => void;
 }) {
   const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -247,7 +265,7 @@ function VoiceCall({ mood, status, active, header, caption, transcript, error, l
         <View style={{ width: 260, height: 260, alignItems: "center", justifyContent: "center" }}>
           <Animated.View style={{ position: "absolute", width: 260, height: 260, borderRadius: 130,
             backgroundColor: C.lilac, opacity: ringOpacity, transform: [{ scale }] }} />
-          <Image source={EMMA[mood]} style={{ width: 230, height: 230, borderRadius: 115, borderWidth: 4, borderColor: "#fff" }} />
+          <Image source={EMMA[mood]} style={{ width: 230, height: 230, borderRadius: 115, borderWidth: 4, borderColor: C.card }} />
         </View>
         <Text style={{ fontSize: 32, fontStyle: "italic", color: C.primary }}>Emma</Text>
         <Text style={[s.muted, { fontSize: 15 }]}>{status}</Text>
@@ -262,32 +280,19 @@ function VoiceCall({ mood, status, active, header, caption, transcript, error, l
         {transcript ? <Text style={{ alignSelf: "flex-end", color: C.text, fontStyle: "italic", fontSize: 16 }}>Вы: {transcript}</Text> : null}
         {error && <Text style={{ color: C.danger, textAlign: "center" }}>{error}</Text>}
       </ScrollView>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 32, paddingVertical: 20 }}>
+      <View style={{ flexDirection: "row", justifyContent: "center", gap: 8 }}>{micChips}</View>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 32, paddingVertical: 16 }}>
         <Pressable onPress={onEnd} style={{ alignItems: "center", gap: 6 }}>
           <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: C.peach, alignItems: "center", justifyContent: "center" }}>
             <View style={{ width: 18, height: 18, borderRadius: 4, backgroundColor: C.danger }} />
           </View>
           <Text style={s.muted}>Завершить</Text>
         </Pressable>
-        <Pressable onPress={onMic} disabled={busy} style={{ alignItems: "center", gap: 6, opacity: busy ? 0.5 : 1 }}>
-          <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: listening ? C.primary : C.card,
-            borderWidth: 3, borderColor: C.primary, alignItems: "center", justifyContent: "center" }}>
-            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: listening ? "#fff" : C.primary }} />
-          </View>
+        <View style={{ alignItems: "center", gap: 6 }}>
+          <MicButton onPress={onMic} active={listening} disabled={busy} size={80} />
           <Text style={s.muted}>{listening ? "Готово" : "Говорить"}</Text>
-        </Pressable>
+        </View>
       </View>
     </View>
-  );
-}
-
-function RoundButton({ children, onPress, disabled, filled }: { children: React.ReactNode; onPress: () => void; disabled?: boolean; filled?: boolean }) {
-  return (
-    <Pressable onPress={onPress} disabled={disabled}
-      style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center",
-        backgroundColor: filled ? C.primary : C.primaryLight, borderWidth: 2, borderColor: C.primary,
-        opacity: pressed || disabled ? 0.6 : 1 })}>
-      {children}
-    </Pressable>
   );
 }

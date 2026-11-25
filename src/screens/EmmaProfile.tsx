@@ -1,6 +1,7 @@
 import React from "react";
 import { Image, ScrollView, Text, useWindowDimensions, View } from "react-native";
-import { EMMA, EMMA_TRAITS, EmmaMood } from "../emma";
+import { EMMA, EMMA_TRAITS, EmmaMood, outfit } from "../emma";
+import { useApp } from "../state";
 import { Button, C, Card, s } from "../ui";
 
 const MOODS: { mood: EmmaMood; label: string }[] = [
@@ -15,10 +16,12 @@ const MOODS: { mood: EmmaMood; label: string }[] = [
 export function EmmaProfile({ onBack, onVoice, onChat }: { onBack: () => void; onVoice: () => void; onChat: () => void }) {
   const { width } = useWindowDimensions();
   const tile = (width - 32 - 24) / 3;
+  const { p } = useApp();
+  const look = outfit(p.outfit);
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
       <View style={{ backgroundColor: C.primaryLight }}>
-        <Image source={EMMA.portrait} style={{ width, height: Math.min(width * 590 / 520, 420) }} resizeMode="cover" />
+        <Image source={look.full} style={{ width, height: Math.min(width * 590 / 520, 420) }} resizeMode={look.id === "default" ? "cover" : "contain"} />
       </View>
       <View style={[s.pad, { marginTop: -40 }]}>
         <Card style={{ alignItems: "flex-start" }}>
@@ -27,7 +30,7 @@ export function EmmaProfile({ onBack, onVoice, onChat }: { onBack: () => void; o
           {EMMA_TRAITS.map((t) => (
             <View key={t} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: C.lilac, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>✓</Text>
+                <Text style={{ color: C.onPrimary, fontWeight: "700", fontSize: 13 }}>✓</Text>
               </View>
               <Text style={s.p}>{t}</Text>
             </View>

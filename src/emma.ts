@@ -19,3 +19,15 @@ export const EMMA_TRAITS = [
   "помогает говорить увереннее",
   "поддерживает и мотивирует",
 ];
+
+// Образы Emma: открываются за достижения.
+export const OUTFITS: { id: string; title: string; face: any; full: any }[] = [
+  { id: "default", title: "Наушники", face: require("../assets/emma/face_default.png"), full: require("../assets/emma/portrait.png") },
+  { id: "glasses", title: "Книжный вечер", face: require("../assets/emma/face_glasses.png"), full: require("../assets/emma/outfit_glasses.png") },
+  { id: "beret", title: "Прогулка", face: require("../assets/emma/face_beret.png"), full: require("../assets/emma/outfit_beret.png") },
+  { id: "jacket", title: "Праздничный", face: require("../assets/emma/face_jacket.png"), full: require("../assets/emma/outfit_jacket.png") },
+];
+
+export function outfit(id: string) {
+  return OUTFITS.find((o) => o.id === id) ?? OUTFITS[0];
+}
