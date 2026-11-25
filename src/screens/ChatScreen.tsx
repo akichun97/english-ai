@@ -160,8 +160,11 @@ export function ChatScreen() {
   );
 
   if (voice) {
-    const mood: EmmaMood = error ? "sleep" : listening ? "surprised" : busy ? "thinking"
-      : lastReply && splitReply(lastReply.content).fix ? "calm" : speaking ? "happy" : lastReply ? "love" : "happy";
+    // Реакция Emma по ходу разговора.
+    const mood: EmmaMood = error ? "sorry" : listening ? "curious" : busy ? "pondering"
+      : lastReply && splitReply(lastReply.content).fix ? "explaining"
+      : !lastReply || userTurns <= 1 ? "hello"
+      : speaking ? (userTurns % 3 === 0 ? "delight" : "joy") : userTurns >= 8 ? "proud" : "support";
     const status = error ? "Что-то пошло не так" : listening ? "Слушаю…" : busy ? "Emma думает…"
       : speaking ? "Emma говорит" : "Нажмите на микрофон и говорите";
     const micOptions = [{ code: lang.speech, label: lang.id === "ja" ? "Говорю по-японски" : "Говорю по-английски" }, { code: "ru-RU", label: "По-русски" }];
@@ -196,7 +199,7 @@ export function ChatScreen() {
         onContentSizeChange={() => scroll.current?.scrollToEnd()}>
         {msgs.length === 0 && (
           <View style={{ gap: 12, alignItems: "center" }}>
-            <EmmaPic source={EMMA.reading} size={170} height={275} />
+            <EmmaPic source={EMMA.hello} size={200} />
             <Text style={[s.p, { textAlign: "center" }]}>
               {lang.id === "ja"
                 ? "Привет! Я Emma. Отвечай как удобно: по-японски, латиницей или по-русски. Я покажу, как сказать правильно."

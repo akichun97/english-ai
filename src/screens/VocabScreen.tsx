@@ -102,7 +102,7 @@ export function VocabScreen({ onBack }: { onBack: () => void }) {
       <Text style={s.h1}>Словарь</Text>
       <Card style={{ gap: 10 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <EmmaPic source={pick.list.length ? EMMA.happy : EMMA.love} size={72} />
+          <EmmaPic source={pick.list.length ? (pick.hard ? EMMA.determined : EMMA.planning) : EMMA.proud} size={80} />
           <View style={{ flex: 1 }}>
             <Text style={s.h2}>Подборка дня от Emma</Text>
             <Text style={s.p}>{pick.list.length ? `Я выбрала ${pick.list.length} слов: ${pickText}. Сначала самые трудные.` : "На сегодня всё повторено. Отличная работа!"}</Text>

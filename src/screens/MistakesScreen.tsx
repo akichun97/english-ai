@@ -27,7 +27,7 @@ export function MistakesScreen({ onBack }: { onBack: () => void }) {
     <ScrollView contentContainerStyle={s.pad}>
       <Button title="← Практика" kind="ghost" onPress={onBack} />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <EmmaPic source={EMMA.thinking} size={80} />
+        <EmmaPic source={list.length ? EMMA.understanding : EMMA.relief} size={84} />
         <View style={{ flex: 1 }}>
           <Text style={s.h1}>Мои ошибки</Text>
           <Text style={s.muted}>Я запоминаю ошибки из уроков и разговоров. Сверху те, что повторяются чаще.</Text>
@@ -87,7 +87,7 @@ function MistakeDetail({ m, onBack }: { m: Mistake; onBack: () => void }) {
       <Text style={s.h1}>{m.topic}</Text>
       {!l && !error && (
         <View style={{ alignItems: "center", gap: 8 }}>
-          <EmmaPic source={EMMA.thinking} size={120} />
+          <EmmaPic source={EMMA.pondering} size={130} />
           <ActivityIndicator color={C.primary} />
           <Text style={s.muted}>Emma готовит разбор…</Text>
         </View>
@@ -95,6 +95,9 @@ function MistakeDetail({ m, onBack }: { m: Mistake; onBack: () => void }) {
       {error && <Text style={{ color: C.danger }}>{error}</Text>}
       {l && (
         <>
+          <View style={{ alignItems: "center" }}>
+            <EmmaPic source={picked === null ? EMMA.explaining : picked === l.exercise.answer ? EMMA.delight : EMMA.support} size={140} />
+          </View>
           <Card>
             <Text style={[s.muted, { fontWeight: "600" }]}>Что было не так</Text>
             <Text style={{ color: C.danger, textDecorationLine: "line-through", fontSize: 16 }}>{m.wrong}</Text>

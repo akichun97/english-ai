@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { askJson } from "../ai";
+import { EMMA, EmmaPic } from "../emma";
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from "expo-speech-recognition";
 import { lessonsFor } from "../data/lessons";
 import { useApp } from "../state";
@@ -142,6 +143,7 @@ export function PronunciationScreen({ onBack }: { onBack: () => void }) {
       {heard ? <Text style={[s.p, { textAlign: "center", fontStyle: "italic" }]}>Услышала: {heard}</Text> : null}
       {result && (
         <Card style={{ alignItems: "center" }}>
+          <EmmaPic source={result.score >= 95 ? EMMA.delight : result.score >= 85 ? EMMA.joy : result.score >= 60 ? EMMA.approval : EMMA.support} size={110} />
           <Text style={{ fontSize: 36, fontWeight: "700", color: result.score >= 85 ? C.good : result.score >= 60 ? C.primary : C.danger }}>{result.score}%</Text>
           <Text style={s.p}>{verdict}</Text>
         </Card>

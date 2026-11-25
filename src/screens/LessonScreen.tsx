@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { askJson, askTeacher } from "../ai";
 import { useApp } from "../state";
+import { EMMA, EmmaPic } from "../emma";
 import { speak as speakText } from "../voice";
 import { Exercise, Lesson } from "../data/lessons";
 import { Button, C, Card, PlayButton, s } from "../ui";
@@ -152,7 +153,10 @@ export function LessonScreen({
           )}
           {check && (
             <Card style={{ borderColor: check.correct ? C.primary : C.danger }}>
-              <Text style={s.p}>{check.feedback}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <EmmaPic source={check.correct ? (score >= 3 ? EMMA.delight : EMMA.joy) : EMMA.support} size={64} />
+                <Text style={[s.p, { flex: 1 }]}>{check.feedback}</Text>
+              </View>
               {check.corrected ? <Text style={s.muted}>Вариант: {check.corrected}</Text> : null}
               {rightSentence() && (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -165,7 +169,10 @@ export function LessonScreen({
           )}
           {why && (
             <Card>
-              <Text style={s.h2}>Объяснение Emma</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <EmmaPic source={EMMA.explaining} size={64} />
+                <Text style={s.h2}>Объяснение Emma</Text>
+              </View>
               <Text style={s.p}>{why}</Text>
             </Card>
           )}

@@ -6,6 +6,7 @@ import { Lesson, lessonsFor } from "./src/data/lessons";
 import { AppProvider, useApp } from "./src/state";
 import { addDay, addXp, maybeLevelUp } from "./src/storage";
 import { applyTheme, C, isDark, s } from "./src/ui";
+import { EMMA, EmmaPic } from "./src/emma";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { LessonScreen } from "./src/screens/LessonScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
@@ -71,9 +72,13 @@ function Main() {
   return (
     <View style={{ flex: 1 }}>
       {unlocked && (
-        <View style={{ position: "absolute", top: 8, left: 16, right: 16, zIndex: 10, backgroundColor: C.primary, borderRadius: 16, padding: 14 }}>
-          <Text style={{ color: C.onPrimary, fontWeight: "700", fontSize: 16 }}>{unlocked.title}</Text>
-          <Text style={{ color: C.onPrimary }}>{unlocked.desc}</Text>
+        <View style={{ position: "absolute", top: 8, left: 16, right: 16, zIndex: 10, backgroundColor: C.primary, borderRadius: 16, padding: 10,
+          flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <EmmaPic source={EMMA.achievement} size={56} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: C.onPrimary, fontWeight: "700", fontSize: 16 }}>{unlocked.title}</Text>
+            <Text style={{ color: C.onPrimary }}>{unlocked.desc}</Text>
+          </View>
         </View>
       )}
       <View style={{ flex: 1 }}>

@@ -34,7 +34,7 @@ export function SessionReview({ messages, onClose }: { messages: ChatMessage[]; 
   return (
     <ScrollView contentContainerStyle={s.pad}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <EmmaPic source={r ? EMMA.love : EMMA.thinking} size={80} />
+        <EmmaPic source={!r ? (error ? EMMA.sorry : EMMA.focus) : r.mistakes.length === 0 ? EMMA.achievement : r.mistakes.length >= 4 ? EMMA.support : EMMA.approval} size={80} />
         <View style={{ flex: 1 }}>
           <Text style={s.h1}>Итог урока</Text>
           <Text style={s.muted}>{r ? "Вот что я заметила" : error ? "Не получилось подвести итог" : "Emma подводит итог…"}</Text>
