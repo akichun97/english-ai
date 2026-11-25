@@ -1,22 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Keyboard, Pressable, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Lesson } from "./src/data/lessons";
-import { addXp, loadProgress, Progress, saveProgress } from "./src/storage";
+import { LESSONS, Lesson } from "./src/data/lessons";
+import { LEVELS } from "./src/data/tests";
+import { addXp, loadProgress, maybeLevelUp, Progress, saveProgress } from "./src/storage";
 import { C, s } from "./src/ui";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { LessonScreen } from "./src/screens/LessonScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
 import { TestsScreen } from "./src/screens/TestsScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
+import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 
 type Tab = "home" | "chat" | "tests" | "settings";
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "home", label: "Уроки", icon: "📚" },
-  { id: "chat", label: "Разговор", icon: "💬" },
-  { id: "tests", label: "Тесты", icon: "📝" },
-  { id: "settings", label: "Настройки", icon: "⚙️" },
+const TABS: { id: Tab; label: string }[] = [
+  { id: "home", label: "Уроки" },
+  { id: "chat", label: "Разговор" },
+  { id: "tests", label: "Тесты" },
+  { id: "settings", label: "Настройки" },
 ];
 
 export default function App() {
@@ -24,7 +26,15 @@ export default function App() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
 
+  const [keyboard, setKeyboard] = useState(false);
+
   useEffect(() => { loadProgress().then(setProgress); }, []);
+  // Пока открыта клавиатура, нижнее меню прячем, чтобы поле ввода было видно.
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboard(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboard(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   function update(fn: (p: Progress) => Progress) {
     setProgress((p) => {
@@ -39,6 +49,17 @@ export default function App() {
 
   if (!progress) return null;
 
+  if (!progress.placementDone) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={s.screen} edges={["top", "bottom"]}>
+          <StatusBar style="dark" />
+          <OnboardingScreen onFinish={(level) => update((p) => ({ ...p, level, placementDone: true }))} />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={s.screen} edges={["top", "bottom"]}>
@@ -48,7 +69,7 @@ export default function App() {
           {tab === "home" && lesson && (
             <LessonScreen lesson={lesson} level={progress.level} onBack={() => setLesson(null)}
               onFinish={(xp) => {
-                update((p) => ({ ...addXp(p, xp), doneLessons: [...new Set([...p.doneLessons, lesson.id])] }));
+                update((p) => maybeLevelUp({ ...addXp(p, xp), doneLessons: [...new Set([...p.doneLessons, lesson.id])] }, LESSONS, LEVELS));
                 setLesson(null);
               }} />
           )}
@@ -56,14 +77,16 @@ export default function App() {
           {tab === "tests" && <TestsScreen level={progress.level} onLevel={setLevel} onXp={gainXp} />}
           {tab === "settings" && <SettingsScreen level={progress.level} onLevel={setLevel} />}
         </View>
-        <View style={{ flexDirection: "row", borderTopWidth: 1, borderColor: C.border, backgroundColor: C.card }}>
+        {!keyboard && <View style={{ flexDirection: "row", borderTopWidth: 1, borderColor: C.border, backgroundColor: C.card }}>
           {TABS.map((t) => (
-            <Pressable key={t.id} onPress={() => setTab(t.id)} style={{ flex: 1, alignItems: "center", paddingVertical: 8 }}>
-              <Text style={{ fontSize: 22 }}>{t.icon}</Text>
+            <Pressable key={t.id} onPress={() => setTab(t.id)} style={{ flex: 1, alignItems: "center", paddingVertical: 10, gap: 4 }}>
+              {/* Одинаковые круги: активная вкладка закрашена */}
+              <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2,
+                borderColor: tab === t.id ? C.primary : C.muted, backgroundColor: tab === t.id ? C.primary : "transparent" }} />
               <Text style={{ fontSize: 12, color: tab === t.id ? C.primary : C.muted, fontWeight: tab === t.id ? "700" : "400" }}>{t.label}</Text>
             </Pressable>
           ))}
-        </View>
+        </View>}
       </SafeAreaView>
     </SafeAreaProvider>
   );

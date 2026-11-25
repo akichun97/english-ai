@@ -48,3 +48,15 @@ export const s = StyleSheet.create({
   input: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 12, fontSize: 16, color: C.text },
   option: { borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 14, backgroundColor: C.card },
 });
+
+/** Круглая кнопка «прослушать» с треугольником. */
+export function PlayButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} hitSlop={6}
+      style={({ pressed }) => ({ width: 36, height: 36, borderRadius: 18, backgroundColor: C.primaryLight,
+        borderWidth: 2, borderColor: C.primary, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.6 : 1 })}>
+      <View style={{ width: 0, height: 0, borderTopWidth: 6, borderBottomWidth: 6, borderLeftWidth: 10,
+        borderTopColor: "transparent", borderBottomColor: "transparent", borderLeftColor: C.primary, marginLeft: 3 }} />
+    </Pressable>
+  );
+}
