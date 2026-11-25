@@ -2,14 +2,16 @@ import React, { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Lesson } from "./src/data/lessons";
-import { addXp, loadProgress, Progress, saveProgress } from "./src/storage";
+import { LESSONS, Lesson } from "./src/data/lessons";
+import { LEVELS } from "./src/data/tests";
+import { addXp, loadProgress, maybeLevelUp, Progress, saveProgress } from "./src/storage";
 import { C, s } from "./src/ui";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { LessonScreen } from "./src/screens/LessonScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
 import { TestsScreen } from "./src/screens/TestsScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
+import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 
 type Tab = "home" | "chat" | "tests" | "settings";
 const TABS: { id: Tab; label: string; icon: string }[] = [
@@ -39,6 +41,17 @@ export default function App() {
 
   if (!progress) return null;
 
+  if (!progress.placementDone) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={s.screen} edges={["top", "bottom"]}>
+          <StatusBar style="dark" />
+          <OnboardingScreen onFinish={(level) => update((p) => ({ ...p, level, placementDone: true }))} />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={s.screen} edges={["top", "bottom"]}>
@@ -48,7 +61,7 @@ export default function App() {
           {tab === "home" && lesson && (
             <LessonScreen lesson={lesson} level={progress.level} onBack={() => setLesson(null)}
               onFinish={(xp) => {
-                update((p) => ({ ...addXp(p, xp), doneLessons: [...new Set([...p.doneLessons, lesson.id])] }));
+                update((p) => maybeLevelUp({ ...addXp(p, xp), doneLessons: [...new Set([...p.doneLessons, lesson.id])] }, LESSONS, LEVELS));
                 setLesson(null);
               }} />
           )}
