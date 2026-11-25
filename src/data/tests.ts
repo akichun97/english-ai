@@ -1,17 +1,9 @@
-// Стартовый тест на уровень: по 3 вопроса на каждый уровень CEFR (A1–C1).
+// Стартовые тесты на уровень: по 3 вопроса на каждый уровень.
+import { LangId, LANGS } from "../lang";
+
 export type TestQuestion = { level: string; q: string; options: string[]; answer: number };
 
-export const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
-
-export const LEVEL_NAMES: Record<string, string> = {
-  A1: "Начальный",
-  A2: "Элементарный",
-  B1: "Средний",
-  B2: "Выше среднего",
-  C1: "Продвинутый",
-};
-
-export const PLACEMENT_TEST: TestQuestion[] = [
+const PLACEMENT_EN: TestQuestion[] = [
   { level: "A1", q: "They ___ students.", options: ["is", "are", "am"], answer: 1 },
   { level: "A1", q: "I have two ___.", options: ["child", "childs", "children"], answer: 2 },
   { level: "A1", q: "___ is your name?", options: ["What", "Who", "Where"], answer: 0 },
@@ -29,23 +21,45 @@ export const PLACEMENT_TEST: TestQuestion[] = [
   { level: "C1", q: "The proposal was met with widespread ___.", options: ["scepticism", "sceptic", "sceptically"], answer: 0 },
 ];
 
-export const EXAMS = [
-  { id: "ielts", title: "IELTS (Speaking/Writing)", desc: "Тренировка в формате IELTS" },
-  { id: "toefl", title: "TOEFL", desc: "Академический английский" },
-  { id: "ege", title: "ЕГЭ по английскому", desc: "Задания в стиле ЕГЭ" },
-  { id: "general", title: "Проверка по уровню", desc: "Экзамен по вашему уровню CEFR" },
+const PLACEMENT_JA: TestQuestion[] = [
+  { level: "N5", q: "Как вежливо сказать «спасибо»?", options: ["すみません", "ありがとうございます", "さようなら"], answer: 1 },
+  { level: "N5", q: "わたし ＿ がくせいです。", options: ["を", "に", "は"], answer: 2 },
+  { level: "N5", q: "Как читается «さ»?", options: ["sa", "ki", "su"], answer: 0 },
+  { level: "N4", q: "きのう えいがを ＿。", options: ["みます", "みました", "みる"], answer: 1 },
+  { level: "N4", q: "にほんごを はなす ことが ＿。", options: ["あります", "します", "できます"], answer: 2 },
+  { level: "N4", q: "あめが ふって いる ＿、かさを もって いきます。", options: ["から", "けど", "のに"], answer: 0 },
+  { level: "N3", q: "この本は 読み＿ です。(легко читать)", options: ["たい", "やすい", "ながら"], answer: 1 },
+  { level: "N3", q: "雨が 降り＿ だ。(вот-вот пойдёт дождь)", options: ["らしい", "よう", "そう"], answer: 2 },
+  { level: "N3", q: "彼は 来ない ＿ しれない。", options: ["かも", "はず", "べき"], answer: 0 },
 ];
 
+export const PLACEMENT: Record<LangId, TestQuestion[]> = { en: PLACEMENT_EN, ja: PLACEMENT_JA };
+
+export const EXAMS: Record<LangId, { id: string; title: string; desc: string }[]> = {
+  en: [
+    { id: "ielts", title: "IELTS (Speaking/Writing)", desc: "Тренировка в формате IELTS" },
+    { id: "toefl", title: "TOEFL", desc: "Академический английский" },
+    { id: "ege", title: "ЕГЭ по английскому", desc: "Задания в стиле ЕГЭ" },
+    { id: "general", title: "Проверка по уровню", desc: "Экзамен по вашему уровню" },
+  ],
+  ja: [
+    { id: "jlpt-n5", title: "JLPT N5", desc: "Первый уровень экзамена по японскому" },
+    { id: "jlpt-n4", title: "JLPT N4", desc: "Базовая грамматика и слова" },
+    { id: "general", title: "Проверка по уровню", desc: "Экзамен по вашему уровню" },
+  ],
+};
+
 /** Уровень = самый высокий, на котором верно хотя бы 2 из 3 (и на всех уровнях ниже тоже). */
-export function levelFromScore(correctByLevel: Record<string, number>): string {
-  let result = "A1";
-  for (const l of LEVELS) {
+export function levelFromScore(correctByLevel: Record<string, number>, lang: LangId = "en"): string {
+  const levels = LANGS[lang].levels;
+  let result = levels[0];
+  for (const l of levels) {
     if ((correctByLevel[l] ?? 0) >= 2) result = l;
     else break;
   }
   return result;
 }
 
-export function levelIndex(l: string): number {
-  return Math.max(0, LEVELS.indexOf(l));
+export function levelIndex(l: string, lang: LangId = "en"): number {
+  return Math.max(0, LANGS[lang].levels.indexOf(l));
 }

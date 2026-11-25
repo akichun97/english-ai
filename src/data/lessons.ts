@@ -1,13 +1,17 @@
 // Темы и задания. Новые уроки добавляются сюда и попадают в следующую сборку.
+import { LangId } from "../lang";
+import { LESSONS_JA } from "./lessons_ja";
 export type Exercise =
   | { kind: "choice"; question: string; options: string[]; answer: number; hint?: string }
   | { kind: "translate"; ru: string; example: string } // проверяет ИИ
   | { kind: "write"; task: string }; // свободный ответ, проверяет ИИ
 
+/** en — фраза на изучаемом языке, ipa — подсказка к чтению (транскрипция или ромадзи). */
 export type Example = { en: string; ipa: string; ru: string };
 
 export type Lesson = {
   id: string;
+  lang?: LangId; // по умолчанию английский
   title: string;
   emoji: string;
   level: string;
@@ -19,7 +23,7 @@ export type Lesson = {
   exercises: Exercise[];
 };
 
-export const LESSONS: Lesson[] = [
+const LESSONS_EN: Lesson[] = [
   {
     id: "greetings",
     title: "Знакомство",
@@ -189,3 +193,9 @@ export const LESSONS: Lesson[] = [
     ],
   },
 ];
+
+export const LESSONS: Lesson[] = [...LESSONS_EN, ...LESSONS_JA];
+
+export function lessonsFor(lang: LangId): Lesson[] {
+  return LESSONS.filter((l) => (l.lang ?? "en") === lang);
+}
