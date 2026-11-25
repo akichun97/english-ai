@@ -1,6 +1,6 @@
 import React from "react";
 import { Image, ScrollView, Text, useWindowDimensions, View } from "react-native";
-import { EMMA, EMMA_TRAITS, EmmaMood, outfit } from "../emma";
+import { EMMA, EMMA_TRAITS, EmmaMood, EmmaPic, outfit } from "../emma";
 import { useApp } from "../state";
 import { Button, C, Card, s } from "../ui";
 
@@ -42,7 +42,7 @@ export function EmmaProfile({ onBack, onVoice, onChat }: { onBack: () => void; o
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" }}>
           {MOODS.map((m) => (
             <View key={m.mood} style={{ width: tile, alignItems: "center", gap: 4 }}>
-              <Image source={EMMA[m.mood]} style={{ width: tile, height: tile, borderRadius: 20 }} />
+              <EmmaPic source={EMMA[m.mood]} size={tile} />
               <Text style={s.muted}>{m.label}</Text>
             </View>
           ))}

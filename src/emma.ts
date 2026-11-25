@@ -31,3 +31,19 @@ export const OUTFITS: { id: string; title: string; face: any; full: any }[] = [
 export function outfit(id: string) {
   return OUTFITS.find((o) => o.id === id) ?? OUTFITS[0];
 }
+
+// Emma без рамок: прозрачная картинка, при желании на мягком круге цвета темы.
+import React from "react";
+import { Image, View } from "react-native";
+import { C } from "./ui";
+
+export function EmmaPic({ source, size, circle = false, ring = false, height }: {
+  source: any; size: number; circle?: boolean; ring?: boolean; height?: number;
+}) {
+  const img = React.createElement(Image, { source, resizeMode: "contain",
+    style: { width: circle ? size * 0.92 : size, height: circle ? size * 0.92 : height ?? size, marginTop: circle ? size * 0.08 : 0 } });
+  if (!circle) return img;
+  return React.createElement(View, { style: { width: size, height: size, borderRadius: size / 2, backgroundColor: C.primaryLight,
+    overflow: "hidden", alignItems: "center", justifyContent: "flex-start",
+    borderWidth: ring ? 2 : 0, borderColor: C.primary } }, img);
+}

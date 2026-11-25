@@ -1,10 +1,10 @@
 import React from "react";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { Lesson, lessonsFor } from "../data/lessons";
-import { outfit } from "../emma";
+import { EmmaPic, outfit } from "../emma";
 import { useApp } from "../state";
-import { today } from "../storage";
-import { isDue } from "../vocab";
+import { goalStatus } from "../storage";
+import { dailyPick } from "../vocab";
 import { Bar, C, Card, s } from "../ui";
 
 export function HomeScreen({ onOpen }: { onOpen: (l: Lesson) => void }) {
@@ -13,14 +13,14 @@ export function HomeScreen({ onOpen }: { onOpen: (l: Lesson) => void }) {
   const myLevel = lang.levels.indexOf(level);
   const levelLessons = lessons.filter((l) => l.level === level);
   const doneHere = levelLessons.filter((l) => p.doneLessons.includes(l.id)).length;
-  const todayXp = today(p).xp;
-  const goalDone = todayXp >= p.dailyGoal;
-  const due = langWords.filter(isDue).length;
+  const goal = goalStatus(p);
+  const goalDone = goal.done;
+  const due = dailyPick(langWords).list.length;
 
   return (
     <ScrollView contentContainerStyle={s.pad}>
       <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Image source={outfit(p.outfit).face} style={{ width: 64, height: 64, borderRadius: 32 }} />
+        <EmmaPic source={outfit(p.outfit).face} size={64} circle />
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={s.h2}>{goalDone ? "Цель дня выполнена!" : "Привет! Позанимаемся?"}</Text>
           <Text style={s.muted}>{lang.name} · уровень {level} · 🔥 {p.streak} дн.</Text>
@@ -29,10 +29,10 @@ export function HomeScreen({ onOpen }: { onOpen: (l: Lesson) => void }) {
       <Card>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text style={s.h2}>Цель дня</Text>
-          <Text style={[s.h2, { color: goalDone ? C.good : C.primary }]}>{todayXp} / {p.dailyGoal} XP</Text>
+          <Text style={[s.h2, { color: goalDone ? C.good : C.primary }]}>{goal.value} / {goal.goal} {goal.unit}</Text>
         </View>
-        <Bar value={todayXp / p.dailyGoal} color={goalDone ? C.good : C.primary} />
-        {due > 0 && <Text style={s.muted}>В словаре ждут повторения: {due}. Загляните во вкладку «Практика».</Text>}
+        <Bar value={goal.value / goal.goal} color={goalDone ? C.good : C.primary} />
+        {due > 0 && <Text style={s.muted}>Emma подобрала {due} слов на сегодня. Загляните во вкладку «Практика».</Text>}
       </Card>
       <Card>
         <Text style={s.h2}>Уровень {level} · {lang.levelNames[level]}</Text>

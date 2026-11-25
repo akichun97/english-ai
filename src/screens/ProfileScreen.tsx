@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { Image, Linking, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
-import { ACHIEVEMENTS, unlockedOutfits } from "../achievements";
+import { Linking, Pressable, ScrollView, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { ACHIEVEMENTS, OUTFIT_RULES, unlockedOutfits } from "../achievements";
 import { getApiKey, saveApiKey } from "../ai";
-import { OUTFITS, outfit } from "../emma";
+import { EmmaPic, OUTFITS, outfit } from "../emma";
 import { LANG_LIST } from "../lang";
 import { askPermission } from "../reminders";
 import { useApp } from "../state";
-import { lastDays, setLevel, ThemeMode } from "../storage";
+import { dayMinutes, goalStatus, lastDays, setLevel, ThemeMode } from "../storage";
 import { LEARNED_BOX } from "../vocab";
 import { Button, C, Card, Chip, s } from "../ui";
 import { OnboardingScreen } from "./OnboardingScreen";
+import { ActivityCalendar } from "./ActivityCalendar";
 
 const GOALS = [10, 20, 30, 50];
+const MINUTES = [5, 10, 15, 30];
 const HOURS: (number | null)[] = [null, 9, 13, 19, 21];
 const THEMES: { id: ThemeMode; label: string }[] = [
   { id: "system", label: "Как в системе" },
@@ -21,6 +23,7 @@ const THEMES: { id: ThemeMode; label: string }[] = [
 
 export function ProfileScreen() {
   const { p, update, lang, level, words } = useApp();
+  const [look, setLook] = useState<string | null>(null);
   const { width } = useWindowDimensions();
   const [newLang, setNewLang] = useState(false);
   const [key, setKey] = useState("");
@@ -30,7 +33,9 @@ export function ProfileScreen() {
   if (newLang) return <OnboardingScreen onCancel={() => setNewLang(false)} />;
 
   const days = lastDays(p, 7);
-  const maxXp = Math.max(p.dailyGoal, ...days.map((d) => d.stats.xp));
+  const minMode = p.goalType === "min";
+  const val = (d: (typeof days)[number]) => (minMode ? dayMinutes(d.stats) : d.stats.xp);
+  const maxVal = Math.max(minMode ? p.dailyMinutes : p.dailyGoal, ...days.map(val));
   const voiceMin = Math.round(Object.values(p.history).reduce((a, d) => a + d.voiceSec, 0) / 60);
   const learned = words.filter((w) => w.box >= LEARNED_BOX).length;
   const outfits = unlockedOutfits(p);
@@ -39,7 +44,7 @@ export function ProfileScreen() {
   return (
     <ScrollView contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled">
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Image source={outfit(p.outfit).face} style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: C.lilac }} />
+        <EmmaPic source={outfit(p.outfit).face} size={72} circle />
         <View style={{ flex: 1 }}>
           <Text style={s.h1}>Профиль</Text>
           <Text style={s.muted}>{lang.name} · {level} · {p.xp} XP</Text>
@@ -65,13 +70,13 @@ export function ProfileScreen() {
           <Stat value={`${learned}/${words.length}`} label="слов выучено" />
           <Stat value={`${voiceMin}`} label="мин. разговора" />
         </View>
-        <Text style={[s.muted, { marginTop: 8 }]}>Опыт за 7 дней</Text>
+        <Text style={[s.muted, { marginTop: 8 }]}>{minMode ? "Минуты занятий за 7 дней" : "Опыт за 7 дней"}</Text>
         <View style={{ flexDirection: "row", alignItems: "flex-end", height: 110, gap: 8 }}>
           {days.map((d) => (
             <View key={d.key} style={{ flex: 1, alignItems: "center", gap: 4 }}>
-              <Text style={{ fontSize: 11, color: C.muted }}>{d.stats.xp || ""}</Text>
-              <View style={{ width: "70%", height: Math.max(4, (d.stats.xp / maxXp) * 70), borderRadius: 6,
-                backgroundColor: d.stats.xp >= p.dailyGoal ? C.good : d.stats.xp ? C.primary : C.border }} />
+              <Text style={{ fontSize: 11, color: C.muted }}>{val(d) || ""}</Text>
+              <View style={{ width: "70%", height: Math.max(4, (val(d) / maxVal) * 70), borderRadius: 6,
+                backgroundColor: goalStatus(p, d.stats).done ? C.good : val(d) ? C.primary : C.border }} />
               <Text style={{ fontSize: 12, color: C.muted }}>{d.label}</Text>
             </View>
           ))}
@@ -79,11 +84,21 @@ export function ProfileScreen() {
         <Text style={s.muted}>Уроков пройдено: {p.doneLessons.length} · голосовых уроков: {p.counters.voiceLessons} · лучшее произношение: {p.counters.bestPron}%</Text>
       </Card>
 
+      <Text style={s.h2}>Календарь занятий</Text>
+      <ActivityCalendar p={p} />
+
       <Card>
         <Text style={s.h2}>Цель дня</Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
-          {GOALS.map((g) => <Chip key={g} label={`${g} XP`} active={p.dailyGoal === g} onPress={() => update((x) => ({ ...x, dailyGoal: g }))} />)}
+          <Chip label="В очках XP" active={!minMode} onPress={() => update((x) => ({ ...x, goalType: "xp" }))} />
+          <Chip label="В минутах" active={minMode} onPress={() => update((x) => ({ ...x, goalType: "min" }))} />
         </View>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {minMode
+            ? MINUTES.map((g) => <Chip key={g} label={`${g} мин`} active={p.dailyMinutes === g} onPress={() => update((x) => ({ ...x, dailyMinutes: g }))} />)
+            : GOALS.map((g) => <Chip key={g} label={`${g} XP`} active={p.dailyGoal === g} onPress={() => update((x) => ({ ...x, dailyGoal: g }))} />)}
+        </View>
+        {minMode && <Text style={s.muted}>Считается время, пока приложение открыто, и голосовые уроки с Emma.</Text>}
         <Text style={s.h2}>Напоминание от Emma</Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {HOURS.map((h) => (
@@ -99,16 +114,36 @@ export function ProfileScreen() {
         <View style={{ flexDirection: "row", gap: 12 }}>
           {OUTFITS.map((o) => {
             const open = outfits.includes(o.id);
-            const ach = ACHIEVEMENTS.find((a) => a.outfit === o.id);
             return (
-              <Pressable key={o.id} disabled={!open} onPress={() => update((x) => ({ ...x, outfit: o.id }))} style={{ width: tile, alignItems: "center", gap: 4 }}>
-                <Image source={o.face} style={{ width: tile, height: tile, borderRadius: tile / 2, opacity: open ? 1 : 0.3,
-                  borderWidth: 3, borderColor: p.outfit === o.id ? C.primary : "transparent" }} />
-                <Text style={{ fontSize: 11, color: C.muted, textAlign: "center" }}>{open ? o.title : `🔒 ${ach?.title ?? ""}`}</Text>
+              <Pressable key={o.id} onPress={() => (open ? update((x) => ({ ...x, outfit: o.id })) : setLook(look === o.id ? null : o.id))}
+                style={{ width: tile, alignItems: "center", gap: 4 }}>
+                <View style={{ opacity: open ? 1 : 0.35, borderRadius: tile / 2, borderWidth: 3, borderColor: p.outfit === o.id ? C.primary : "transparent" }}>
+                  <EmmaPic source={o.face} size={tile - 6} circle />
+                </View>
+                <Text style={{ fontSize: 11, color: C.muted, textAlign: "center" }}>{open ? o.title : `🔒 ${o.title}`}</Text>
               </Pressable>
             );
           })}
         </View>
+        {OUTFIT_RULES.filter((r) => !outfits.includes(r.outfit) && (look === null || look === r.outfit)).map((r) => (
+          <View key={r.outfit} style={{ backgroundColor: C.primaryLight, borderRadius: 14, padding: 12, gap: 6 }}>
+            <Text style={[s.p, { fontWeight: "700" }]}>Как открыть «{outfit(r.outfit).title}»</Text>
+            {r.conds.map((c) => {
+              const v = Math.min(c.value(p, words), c.need), ok = v >= c.need;
+              return (
+                <View key={c.label} style={{ gap: 3 }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                    <Text style={[s.p, { fontSize: 14, color: ok ? C.good : C.text }]}>{ok ? "✓ " : ""}{c.label}</Text>
+                    <Text style={[s.p, { fontSize: 14, fontWeight: "600" }]}>{v} / {c.need}</Text>
+                  </View>
+                  <View style={{ height: 6, borderRadius: 3, backgroundColor: C.border }}>
+                    <View style={{ width: `${(v / c.need) * 100}%`, height: 6, borderRadius: 3, backgroundColor: ok ? C.good : C.primary }} />
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        ))}
       </Card>
 
       <Card>
@@ -122,7 +157,7 @@ export function ProfileScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[s.p, { fontWeight: "600" }]}>{a.title}</Text>
-                <Text style={s.muted}>{a.desc}{a.outfit ? " · открывает образ Emma" : ""}</Text>
+                <Text style={s.muted}>{a.desc}</Text>
               </View>
             </View>
           );

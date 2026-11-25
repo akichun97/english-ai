@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { askJson } from "../ai";
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from "expo-speech-recognition";
 import { lessonsFor } from "../data/lessons";
 import { useApp } from "../state";
@@ -8,6 +9,7 @@ import { Button, C, Card, Chip, MicButton, PlayButton, s } from "../ui";
 import { speak } from "../voice";
 
 type Phrase = { text: string; reading?: string; ru: string };
+type Sounds = { sounds: { sound: string; word: string; tip: string }[]; general: string };
 
 const norm = (t: string) => t.toLowerCase().replace(/[^\p{L}\p{N}\s']/gu, " ").replace(/\s+/g, " ").trim();
 
@@ -54,6 +56,8 @@ export function PronunciationScreen({ onBack }: { onBack: () => void }) {
   const [result, setResult] = useState<ReturnType<typeof compare> | null>(null);
   const [slow, setSlow] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sounds, setSounds] = useState<Sounds | null>(null);
+  const [soundsBusy, setSoundsBusy] = useState(false);
   const phrase = phrases[i % Math.max(1, phrases.length)];
 
   useSpeechRecognitionEvent("start", () => setListening(true));
@@ -66,6 +70,7 @@ export function PronunciationScreen({ onBack }: { onBack: () => void }) {
       setResult(r);
       gainXp(r.score >= 80 ? 3 : 1);
       update((p) => bump(p, "bestPron", r.score));
+      if (r.score < 100) analyze(phrase, t);
     }
   });
   useSpeechRecognitionEvent("error", (e) => {
@@ -73,9 +78,27 @@ export function PronunciationScreen({ onBack }: { onBack: () => void }) {
     if (e.error !== "no-speech" && e.error !== "aborted") setError(e.error === "not-allowed" ? "Разрешите доступ к микрофону в настройках телефона." : e.message);
   });
 
+  /** Emma смотрит, что распознал телефон, и называет звуки, которые стоит поправить. */
+  async function analyze(ph: Phrase, said: string) {
+    setSoundsBusy(true);
+    try {
+      const r = await askJson<Sounds>(
+        `Ты Emma, преподаватель произношения (${lang.name.toLowerCase()}) для русскоговорящего ученика. Пиши по-русски, коротко и по делу.`,
+        `Ученик читал фразу: "${ph.text}"${ph.reading ? ` (${ph.reading})` : ""}. Распознавание речи услышало: "${said}". ` +
+          `По расхождениям определи конкретные звуки, которые ученик произнёс неверно (типичные трудности русскоговорящих: ${lang.id === "ja" ? "долгие гласные, удвоенные согласные っ, ら-ряд, ん, ふ" : "th, w/v, r, h, долгие и краткие гласные, æ, оглушение конечных согласных"}). ` +
+          `Верни {"sounds": [{"sound": "${lang.id === "ja" ? "кана и ромадзи" : "звук в IPA, например /θ/"}", "word": "слово из фразы с этим звуком", "tip": "как поставить язык и губы, 1-2 предложения"}] (1-3 пункта, только реальные проблемы), "general": "одно ободряющее предложение"}`,
+      );
+      setSounds(r);
+    } catch {
+      setSounds(null);
+    } finally {
+      setSoundsBusy(false);
+    }
+  }
+
   async function record() {
     if (listening) { ExpoSpeechRecognitionModule.stop(); return; }
-    setError(null); setResult(null); setHeard("");
+    setError(null); setResult(null); setHeard(""); setSounds(null);
     const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
     if (!perm.granted) { setError("Разрешите доступ к микрофону в настройках телефона."); return; }
     ExpoSpeechRecognitionModule.start({ lang: lang.speech, interimResults: true, continuous: false });
@@ -123,8 +146,30 @@ export function PronunciationScreen({ onBack }: { onBack: () => void }) {
           <Text style={s.p}>{verdict}</Text>
         </Card>
       )}
+      {soundsBusy && <View style={{ alignItems: "center", gap: 4 }}><ActivityIndicator color={C.primary} /><Text style={s.muted}>Emma разбирает звуки…</Text></View>}
+      {sounds && sounds.sounds.length > 0 && (
+        <Card style={{ gap: 10 }}>
+          <Text style={s.h2}>Над чем поработать</Text>
+          {sounds.sounds.map((x, n) => (
+            <View key={n} style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+              <View style={{ minWidth: 52, paddingHorizontal: 8, height: 40, borderRadius: 12, backgroundColor: C.primaryLight, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ color: C.primary, fontWeight: "700", fontSize: 16 }}>{x.sound}</Text>
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Text style={[s.p, { fontWeight: "700" }]}>{x.word}</Text>
+                  <PlayButton onPress={() => speak(x.word, lang, { rate: 0.6 })} />
+                </View>
+                <Text style={s.muted}>{x.tip}</Text>
+              </View>
+            </View>
+          ))}
+          {sounds.general ? <Text style={s.p}>{sounds.general}</Text> : null}
+          <Text style={[s.muted, { fontSize: 12 }]}>Разбор основан на том, что распознал телефон, поэтому он примерный.</Text>
+        </Card>
+      )}
       {error && <Text style={{ color: C.danger }}>{error}</Text>}
-      <Button title="Следующая фраза" kind="ghost" onPress={() => { setI(i + 1); setResult(null); setHeard(""); }} />
+      <Button title="Следующая фраза" kind="ghost" onPress={() => { setI(i + 1); setResult(null); setHeard(""); setSounds(null); }} />
     </ScrollView>
   );
 }

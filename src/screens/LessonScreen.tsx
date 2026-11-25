@@ -13,7 +13,7 @@ type Check = { correct: boolean; feedback: string; corrected?: string };
 export function LessonScreen({
   lesson, onFinish, onBack,
 }: { lesson: Lesson; onFinish: (xp: number) => void; onBack: () => void }) {
-  const { lang, level } = useApp();
+  const { lang, level, addMistakes } = useApp();
   const speak = (t: string) => speakText(t, lang, { rate: 0.85 });
   const [i, setI] = useState(-1); // -1 = теория
   const [picked, setPicked] = useState<number | null>(null);
@@ -69,6 +69,7 @@ export function LessonScreen({
       );
       setCheck(r);
       if (r.correct) setScore((x) => x + 1);
+      else if (r.corrected) addMistakes([{ topic: lesson.title, wrong: text, right: r.corrected, why: r.feedback }]);
     } catch (e) {
       setCheck({ correct: false, feedback: (e as Error).message });
     } finally {
@@ -81,6 +82,7 @@ export function LessonScreen({
     setPicked(n);
     const ok = n === ex.answer;
     if (ok) setScore((x) => x + 1);
+    else addMistakes([{ topic: lesson.title, wrong: ex.question.replace(/___|＿/, ex.options[n]), right: ex.question.replace(/___|＿/, ex.options[ex.answer]), why: ex.hint ?? "" }]);
     setCheck({ correct: ok, feedback: ok ? "Верно! 🎉" : `Правильно: ${ex.options[ex.answer]}${ex.hint ? ` (${ex.hint})` : ""}` });
   }
 

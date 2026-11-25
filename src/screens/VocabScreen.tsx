@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { ActivityIndicator, ScrollView, Text, TextInput, View } from "react-native";
 import { askJson } from "../ai";
 import { useApp } from "../state";
-import { bump } from "../storage";
-import { isDue, LEARNED_BOX, review, Word } from "../vocab";
-import { Bar, Button, C, Card, PlayButton, s } from "../ui";
+import { addDay, bump } from "../storage";
+import { dailyPick, FILTERS, isHard, isLearned, isNew, review, VocabFilter, Word } from "../vocab";
+import { EMMA, EmmaPic } from "../emma";
+import { Bar, Button, C, Card, Chip, PlayButton, s } from "../ui";
 import { speak } from "../voice";
 
 export function VocabScreen({ onBack }: { onBack: () => void }) {
@@ -17,14 +18,19 @@ export function VocabScreen({ onBack }: { onBack: () => void }) {
   const [reading, setReading] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [filter, setFilter] = useState<VocabFilter>("all");
 
-  const due = langWords.filter(isDue);
-  const learned = langWords.filter((w) => w.box >= LEARNED_BOX).length;
+  const pick = dailyPick(langWords);
+  const hardAll = langWords.filter(isHard);
+  const learned = langWords.filter(isLearned).length;
+  const shownWords = langWords.filter(FILTERS.find((f) => f.id === filter)!.test);
+  const pickText = [pick.hard && `${pick.hard} сложных`, pick.due && `${pick.due} на повторение`, pick.fresh && `${pick.fresh} новых`].filter(Boolean).join(", ");
 
   function answer(w: Word, remembered: boolean) {
+    const after = review(w, remembered);
     setWords((all) => all.map((x) => (x.id === w.id ? review(x, remembered) : x)));
     gainXp(1);
-    update((p) => bump(p, "reviews"));
+    update((p) => (!isLearned(w) && isLearned(after) ? addDay(bump(p, "reviews"), { learned: 1 }) : bump(p, "reviews")));
     let rest = queue!.slice(1);
     // Забытое слово показываем ещё раз в конце, но только один раз.
     if (!remembered && !retried.has(w.id)) {
@@ -94,12 +100,25 @@ export function VocabScreen({ onBack }: { onBack: () => void }) {
     <ScrollView contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled">
       <Button title="← Практика" kind="ghost" onPress={onBack} />
       <Text style={s.h1}>Словарь</Text>
+      <Card style={{ gap: 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <EmmaPic source={pick.list.length ? EMMA.happy : EMMA.love} size={72} />
+          <View style={{ flex: 1 }}>
+            <Text style={s.h2}>Подборка дня от Emma</Text>
+            <Text style={s.p}>{pick.list.length ? `Я выбрала ${pick.list.length} слов: ${pickText}. Сначала самые трудные.` : "На сегодня всё повторено. Отличная работа!"}</Text>
+          </View>
+        </View>
+        <Button title={pick.list.length ? "Начать подборку" : "Сегодня всё повторено"} disabled={!pick.list.length}
+          onPress={() => { setRetried(new Set()); setQueue(pick.list); }} />
+        {hardAll.length > 0 && (
+          <Button title={`Потренировать сложные (${hardAll.length})`} kind="ghost"
+            onPress={() => { setRetried(new Set()); setQueue(hardAll); }} />
+        )}
+      </Card>
       <Card>
         <Text style={s.h2}>Выучено {learned} из {langWords.length}</Text>
         <Bar value={langWords.length ? learned / langWords.length : 0} />
-        <Text style={s.muted}>Слово считается выученным, когда вы вспомнили его 3 раза подряд с перерывами в несколько дней.</Text>
-        <Button title={due.length ? `Повторить (${due.length})` : "Сегодня всё повторено"} disabled={!due.length}
-          onPress={() => { setRetried(new Set()); setQueue(due); }} />
+        <Text style={s.muted}>Слово считается выученным, когда вы вспомнили его 3 раза подряд с перерывами в несколько дней. Сложные — те, что забывались два раза и больше.</Text>
       </Card>
       <Card>
         <Text style={s.h2}>Добавить слово</Text>
@@ -116,14 +135,23 @@ export function VocabScreen({ onBack }: { onBack: () => void }) {
         {busy && <ActivityIndicator color={C.primary} />}
         {msg && <Text style={s.muted}>{msg}</Text>}
       </Card>
-      <Text style={s.h2}>Все слова</Text>
+      <Text style={s.h2}>Мои слова</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {FILTERS.map((f) => {
+          const n = langWords.filter(f.test).length;
+          return <Chip key={f.id} label={`${f.label} · ${n}`} active={filter === f.id} onPress={() => setFilter(f.id)} />;
+        })}
+      </View>
       {langWords.length === 0 && <Text style={s.muted}>Слова появятся после уроков и разговоров с Emma.</Text>}
-      {[...langWords].reverse().map((w) => (
+      {langWords.length > 0 && shownWords.length === 0 && <Text style={s.muted}>В этой группе пока нет слов.</Text>}
+      {[...shownWords].reverse().map((w) => (
         <Card key={w.id} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <PlayButton onPress={() => speak(w.word, lang, { rate: 0.85 })} />
           <View style={{ flex: 1 }}>
             <Text style={[s.p, { fontWeight: "600" }]}>{w.word}</Text>
             <Text style={s.muted}>{w.translation}{w.reading ? ` · ${w.reading}` : ""}</Text>
+            {isHard(w) ? <Text style={{ color: C.danger, fontSize: 12 }}>сложное · забывалось {w.lapses} раз</Text>
+              : isNew(w) ? <Text style={{ color: C.primary, fontSize: 12 }}>новое</Text> : null}
           </View>
           <View style={{ flexDirection: "row", gap: 3 }}>
             {[1, 2, 3, 4, 5].map((i) => (

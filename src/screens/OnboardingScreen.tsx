@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { levelFromScore, PLACEMENT } from "../data/tests";
-import { EMMA } from "../emma";
+import { EMMA, EmmaPic } from "../emma";
 import { LangId, LANG_LIST, LANGS } from "../lang";
 import { askPermission } from "../reminders";
 import { useApp } from "../state";
@@ -33,7 +33,7 @@ export function OnboardingScreen({ onCancel }: { onCancel?: () => void }) {
           const level = levelFromScore(byLevel, lang);
           return (
             <Card>
-              <Image source={EMMA.love} style={{ width: 120, height: 120, borderRadius: 60, alignSelf: "center" }} />
+              <View style={{ alignSelf: "center" }}><EmmaPic source={EMMA.love} size={130} /></View>
               <Text style={s.h2}>Ваш уровень: {level} · {L.levelNames[level]}</Text>
               <Text style={s.p}>Правильных ответов: {correct} из {questions.length}.</Text>
               <Text style={s.p}>Уроки, разговор с Emma и экзамены будут подобраны под этот уровень. Когда вы пройдёте все темы уровня, откроется следующий.</Text>
@@ -49,7 +49,7 @@ export function OnboardingScreen({ onCancel }: { onCancel?: () => void }) {
     const L = LANGS[lang];
     return (
       <ScrollView contentContainerStyle={[s.pad, { flexGrow: 1, justifyContent: "center" }]}>
-        <Image source={EMMA.happy} style={{ width: 160, height: 160, borderRadius: 80, alignSelf: "center" }} />
+        <View style={{ alignSelf: "center" }}><EmmaPic source={EMMA.happy} size={170} /></View>
         <Text style={[s.h1, { textAlign: "center" }]}>{L.name}</Text>
         <Text style={[s.p, { textAlign: "center" }]}>
           Короткий тест: {PLACEMENT[lang].length} вопросов, несколько минут. По результату я подберу уроки вашего уровня.
@@ -63,7 +63,7 @@ export function OnboardingScreen({ onCancel }: { onCancel?: () => void }) {
 
   return (
     <ScrollView contentContainerStyle={[s.pad, { flexGrow: 1, justifyContent: "center" }]}>
-      <Image source={EMMA.happy} style={{ width: 160, height: 160, borderRadius: 80, alignSelf: "center" }} />
+      <View style={{ alignSelf: "center" }}><EmmaPic source={EMMA.happy} size={170} /></View>
       <Text style={[s.h1, { textAlign: "center" }]}>Привет! Я Emma, твой AI-наставник</Text>
       <Text style={[s.p, { textAlign: "center" }]}>Какой язык будем учить?</Text>
       {LANG_LIST.map((L) => (

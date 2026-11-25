@@ -1,17 +1,18 @@
 import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useApp } from "../state";
-import { isDue } from "../vocab";
+import { dailyPick } from "../vocab";
 import { C, Card, s } from "../ui";
 import { VocabScreen } from "./VocabScreen";
 import { PronunciationScreen } from "./PronunciationScreen";
 import { ListeningScreen } from "./ListeningScreen";
 import { TestsScreen } from "./TestsScreen";
+import { MistakesScreen } from "./MistakesScreen";
 
-type View_ = "menu" | "vocab" | "pron" | "listen" | "tests";
+type View_ = "menu" | "vocab" | "pron" | "listen" | "tests" | "mistakes";
 
 export function PracticeScreen() {
-  const { langWords, lang } = useApp();
+  const { langWords, lang, mistakes } = useApp();
   const [view, setView] = useState<View_>("menu");
   const back = () => setView("menu");
 
@@ -19,10 +20,13 @@ export function PracticeScreen() {
   if (view === "pron") return <PronunciationScreen onBack={back} />;
   if (view === "listen") return <ListeningScreen onBack={back} />;
   if (view === "tests") return <TestsScreen onBack={back} />;
+  if (view === "mistakes") return <MistakesScreen onBack={back} />;
 
-  const due = langWords.filter(isDue).length;
+  const due = dailyPick(langWords).list.length;
+  const repeat = mistakes.filter((m) => m.count >= 2).length;
   const items: { id: View_; title: string; desc: string; badge?: string }[] = [
-    { id: "vocab", title: "Словарь и карточки", desc: `${langWords.length} слов. Повторение по расписанию, чтобы запомнить надолго.`, badge: due ? `${due}` : undefined },
+    { id: "vocab", title: "Словарь и карточки", desc: `${langWords.length} слов. Подборка дня от Emma: сложные, к повторению и новые.`, badge: due ? `${due}` : undefined },
+    { id: "mistakes", title: "Мои ошибки", desc: mistakes.length ? `${mistakes.length} тем. Emma объяснит и даст упражнение.` : "Emma запоминает ошибки и помогает их исправить.", badge: repeat ? `${repeat}` : undefined },
     { id: "pron", title: "Произношение", desc: "Emma говорит фразу, вы повторяете, приложение проверяет." },
     { id: "listen", title: "Аудирование", desc: "Короткие истории на слух с вопросами. Можно замедлить." },
     { id: "tests", title: "Тесты и экзамены", desc: "Тест на уровень и экзамены, задания для которых придумывает ИИ." },
