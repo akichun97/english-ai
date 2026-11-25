@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { askJson } from "../ai";
 import { isBeginner } from "../lang";
+import { EMMA, EmmaPic } from "../emma";
 import { useApp } from "../state";
 import { bump } from "../storage";
 import { Button, C, Card, Chip, MicButton, s } from "../ui";
@@ -74,7 +75,7 @@ export function ListeningScreen({ onBack }: { onBack: () => void }) {
           <Button title="Новая история" onPress={load} />
         </Card>
       )}
-      {busy && <ActivityIndicator color={C.primary} />}
+      {busy && <View style={{ alignItems: "center" }}><EmmaPic source={EMMA.focus} size={120} /><ActivityIndicator color={C.primary} /></View>}
       {error && <Text style={{ color: C.danger }}>{error}</Text>}
       {story && (
         <>
@@ -104,6 +105,7 @@ export function ListeningScreen({ onBack }: { onBack: () => void }) {
           ))}
           {finished && (
             <Card style={{ alignItems: "center" }}>
+              <EmmaPic source={correct === story.questions.length ? EMMA.achievement : correct ? EMMA.approval : EMMA.support} size={110} />
               <Text style={s.h2}>Правильно: {correct} из {story.questions.length}</Text>
             </Card>
           )}

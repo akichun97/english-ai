@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Easing, Image, KeyboardAvoidingView, Pressable, ScrollView, ScrollViewInstance, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Animated, Easing, KeyboardAvoidingView, Pressable, ScrollView, ScrollViewInstance, Text, TextInput, View } from "react-native";
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from "expo-speech-recognition";
 import { askTeacher, ChatMessage, teacherPrompt } from "../ai";
-import { EMMA, EmmaMood, outfit } from "../emma";
+import { EMMA, EmmaMood, EmmaPic, outfit } from "../emma";
 import { isBeginner } from "../lang";
 import { useApp } from "../state";
 import { addVoiceTime, bump } from "../storage";
@@ -25,7 +25,7 @@ function splitReply(text: string): { main: string; fix: string | null } {
 }
 
 export function ChatScreen() {
-  const { p, lang, level, update, gainXp } = useApp();
+  const { p, lang, level, update, gainXp, weakSpots } = useApp();
   const [mode, setMode] = useState(MODES[0]);
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -102,7 +102,7 @@ export function ChatScreen() {
     setBusy(true);
     setError(null);
     try {
-      const reply = await askTeacher(teacherPrompt(lang.id, level, mode.mode), next);
+      const reply = await askTeacher(teacherPrompt(lang.id, level, mode.mode, weakSpots), next);
       setMsgs([...next, { role: "assistant", content: reply }]);
       gainXp(2);
       if (voiceRef.current) say(reply);
@@ -160,8 +160,11 @@ export function ChatScreen() {
   );
 
   if (voice) {
-    const mood: EmmaMood = error ? "sleep" : listening ? "surprised" : busy ? "thinking"
-      : lastReply && splitReply(lastReply.content).fix ? "calm" : speaking ? "happy" : lastReply ? "love" : "happy";
+    // Реакция Emma по ходу разговора.
+    const mood: EmmaMood = error ? "sorry" : listening ? "curious" : busy ? "pondering"
+      : lastReply && splitReply(lastReply.content).fix ? "explaining"
+      : !lastReply || userTurns <= 1 ? "hello"
+      : speaking ? (userTurns % 3 === 0 ? "delight" : "joy") : userTurns >= 8 ? "proud" : "support";
     const status = error ? "Что-то пошло не так" : listening ? "Слушаю…" : busy ? "Emma думает…"
       : speaking ? "Emma говорит" : "Нажмите на микрофон и говорите";
     const micOptions = [{ code: lang.speech, label: lang.id === "ja" ? "Говорю по-японски" : "Говорю по-английски" }, { code: "ru-RU", label: "По-русски" }];
@@ -177,7 +180,7 @@ export function ChatScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <Pressable onPress={() => setProfile(true)} style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12 }}>
-        <Image source={outfit(p.outfit).face} style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: C.lilac }} />
+        <EmmaPic source={outfit(p.outfit).face} size={48} circle />
         <View style={{ flex: 1 }}>
           <Text style={s.h2}>Emma</Text>
           <Text style={s.muted}>{lang.name} · профиль</Text>
@@ -196,7 +199,7 @@ export function ChatScreen() {
         onContentSizeChange={() => scroll.current?.scrollToEnd()}>
         {msgs.length === 0 && (
           <View style={{ gap: 12, alignItems: "center" }}>
-            <Image source={EMMA.reading} style={{ width: 160, height: 250, borderRadius: 24 }} resizeMode="cover" />
+            <EmmaPic source={EMMA.hello} size={200} />
             <Text style={[s.p, { textAlign: "center" }]}>
               {lang.id === "ja"
                 ? "Привет! Я Emma. Отвечай как удобно: по-японски, латиницей или по-русски. Я покажу, как сказать правильно."
@@ -210,7 +213,7 @@ export function ChatScreen() {
         )}
         {msgs.map((m, n) => (
           <View key={n} style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "88%" }}>
-            {m.role === "assistant" && <Image source={outfit(p.outfit).face} style={{ width: 28, height: 28, borderRadius: 14 }} />}
+            {m.role === "assistant" && <EmmaPic source={outfit(p.outfit).face} size={30} circle />}
             <Pressable onLongPress={() => m.role === "assistant" && say(m.content)}
               style={{ flexShrink: 1, backgroundColor: m.role === "user" ? C.primary : C.card, borderRadius: 18, padding: 12,
                 borderWidth: m.role === "user" ? 0 : 1, borderColor: C.border }}>
@@ -265,7 +268,7 @@ function VoiceCall({ mood, status, active, header, caption, transcript, error, l
         <View style={{ width: 260, height: 260, alignItems: "center", justifyContent: "center" }}>
           <Animated.View style={{ position: "absolute", width: 260, height: 260, borderRadius: 130,
             backgroundColor: C.lilac, opacity: ringOpacity, transform: [{ scale }] }} />
-          <Image source={EMMA[mood]} style={{ width: 230, height: 230, borderRadius: 115, borderWidth: 4, borderColor: C.card }} />
+          <EmmaPic source={EMMA[mood]} size={230} />
         </View>
         <Text style={{ fontSize: 32, fontStyle: "italic", color: C.primary }}>Emma</Text>
         <Text style={[s.muted, { fontSize: 15 }]}>{status}</Text>

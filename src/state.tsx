@@ -1,10 +1,15 @@
-// Общее состояние приложения: прогресс, словарь, текущий язык.
+// Общее состояние приложения: прогресс, словарь, ошибки, текущий язык.
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
-import { Achievement, newAchievements } from "./achievements";
+import { AppState } from "react-native";
+import { newAchievements, newOutfits } from "./achievements";
+import { outfit } from "./emma";
 import { LangInfo, LANGS } from "./lang";
-import { addXp, cur, loadProgress, Progress, saveProgress, today } from "./storage";
+import { addDay, addXp, cur, goalStatus, loadProgress, Progress, saveProgress } from "./storage";
 import { loadVocab, makeWord, mergeWords, saveVocab, Word } from "./vocab";
+import { loadMistakes, mergeMistakes, Mistake, saveMistakes, topMistakes } from "./mistakes";
 import { scheduleReminders } from "./reminders";
+
+export type Notice = { title: string; desc: string };
 
 type Ctx = {
   p: Progress;
@@ -16,7 +21,11 @@ type Ctx = {
   langWords: Word[];
   setWords: (fn: (w: Word[]) => Word[]) => void;
   addWords: (items: { word: string; translation: string; reading?: string }[]) => number;
-  unlocked: Achievement | null; // только что полученное достижение
+  mistakes: Mistake[]; // ошибки по текущему языку
+  setMistakes: (fn: (m: Mistake[]) => Mistake[]) => void;
+  addMistakes: (items: { topic?: string; wrong: string; right: string; why: string }[]) => void;
+  weakSpots: string[]; // частые ошибки для подсказки Emma
+  unlocked: Notice | null; // только что полученное достижение или образ
 };
 
 const AppCtx = createContext<Ctx | null>(null);
@@ -30,28 +39,41 @@ export function useApp(): Ctx {
 export function AppProvider({ children, fallback }: { children: (p: Progress) => React.ReactNode; fallback?: React.ReactNode }) {
   const [p, setP] = useState<Progress | null>(null);
   const [words, setW] = useState<Word[]>([]);
-  const [unlocked, setUnlocked] = useState<Achievement | null>(null);
+  const [mistakes, setM] = useState<Mistake[]>([]);
+  const [unlocked, setUnlocked] = useState<Notice | null>(null);
   const wordsRef = useRef(words);
   wordsRef.current = words;
 
   useEffect(() => {
-    Promise.all([loadProgress(), loadVocab()]).then(([pp, ww]) => { setW(ww); setP(pp); });
+    Promise.all([loadProgress(), loadVocab(), loadMistakes()]).then(([pp, ww, mm]) => { setW(ww); setM(mm); setP(pp); });
   }, []);
 
-  // Проверяем достижения после каждого изменения прогресса или словаря.
+  // Время в приложении: пока оно на экране, каждую минуту добавляем минуту к сегодняшнему дню.
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const start = () => { if (!timer) timer = setInterval(() => update((x) => addDay(x, { activeSec: 60 })), 60000); };
+    const stop = () => { if (timer) clearInterval(timer); timer = null; };
+    if (AppState.currentState === "active") start();
+    const sub = AppState.addEventListener("change", (st) => (st === "active" ? start() : stop()));
+    return () => { stop(); sub.remove(); };
+  }, []);
+
+  // Проверяем достижения и образы после каждого изменения прогресса или словаря.
   useEffect(() => {
     if (!p) return;
     const fresh = newAchievements(p, words);
-    if (fresh.length) {
-      update((x) => ({ ...x, achievements: [...x.achievements, ...fresh.map((a) => a.id)] }));
-      setUnlocked(fresh[0]);
-      setTimeout(() => setUnlocked(null), 4000);
-    }
+    const looks = newOutfits(p, words);
+    if (!fresh.length && !looks.length) return;
+    update((x) => ({ ...x, achievements: [...x.achievements, ...fresh.map((a) => a.id)], outfits: [...x.outfits, ...looks] }));
+    setUnlocked(looks.length
+      ? { title: `Новый образ Emma: ${outfit(looks[0]).title}`, desc: "Выберите его в профиле." }
+      : { title: `Новое достижение: ${fresh[0].title}`, desc: fresh[0].desc });
+    setTimeout(() => setUnlocked(null), 4000);
   }, [p, words]);
 
-  // Перепланируем напоминания, когда меняется цель, час или сегодняшний опыт.
-  const goalDone = p ? today(p).xp >= p.dailyGoal : false;
-  useEffect(() => { if (p) scheduleReminders(p); }, [p?.reminderHour, p?.dailyGoal, goalDone]);
+  // Перепланируем напоминания, когда меняется цель, час или выполнение цели.
+  const goalDone = p ? goalStatus(p).done : false;
+  useEffect(() => { if (p) scheduleReminders(p); }, [p?.reminderHour, p?.dailyGoal, p?.dailyMinutes, p?.goalType, goalDone]);
 
   function update(fn: (p: Progress) => Progress) {
     setP((old) => {
@@ -66,6 +88,14 @@ export function AppProvider({ children, fallback }: { children: (p: Progress) =>
     setW((old) => {
       const n = fn(old);
       saveVocab(n);
+      return n;
+    });
+  }
+
+  function setMistakes(fn: (m: Mistake[]) => Mistake[]) {
+    setM((old) => {
+      const n = fn(old);
+      saveMistakes(n);
       return n;
     });
   }
@@ -87,8 +117,14 @@ export function AppProvider({ children, fallback }: { children: (p: Progress) =>
       const before = wordsRef.current.length;
       const merged = mergeWords(wordsRef.current, add);
       setWords(() => merged);
-      return merged.length - before;
+      const n = merged.length - before;
+      if (n) update((x) => addDay(x, { words: n }));
+      return n;
     },
+    mistakes: mistakes.filter((m) => m.lang === p.lang),
+    setMistakes,
+    addMistakes: (items) => setMistakes((m) => mergeMistakes(m, p.lang, items)),
+    weakSpots: topMistakes(mistakes, p.lang, 4).filter((m) => m.count >= 2).map((m) => `${m.topic} (e.g. "${m.wrong}" → "${m.right}")`),
     unlocked,
   };
   return <AppCtx.Provider value={ctx}>{children(p)}</AppCtx.Provider>;

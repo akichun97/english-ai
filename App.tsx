@@ -4,8 +4,9 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Lesson, lessonsFor } from "./src/data/lessons";
 import { AppProvider, useApp } from "./src/state";
-import { addXp, maybeLevelUp } from "./src/storage";
+import { addDay, addXp, maybeLevelUp } from "./src/storage";
 import { applyTheme, C, isDark, s } from "./src/ui";
+import { EMMA, EmmaPic } from "./src/emma";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { LessonScreen } from "./src/screens/LessonScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
@@ -71,9 +72,13 @@ function Main() {
   return (
     <View style={{ flex: 1 }}>
       {unlocked && (
-        <View style={{ position: "absolute", top: 8, left: 16, right: 16, zIndex: 10, backgroundColor: C.primary, borderRadius: 16, padding: 14 }}>
-          <Text style={{ color: C.onPrimary, fontWeight: "700", fontSize: 16 }}>Новое достижение: {unlocked.title}</Text>
-          <Text style={{ color: C.onPrimary }}>{unlocked.outfit ? "Открыт новый образ Emma! Выберите его в профиле." : unlocked.desc}</Text>
+        <View style={{ position: "absolute", top: 8, left: 16, right: 16, zIndex: 10, backgroundColor: C.primary, borderRadius: 16, padding: 10,
+          flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <EmmaPic source={EMMA.achievement} size={56} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: C.onPrimary, fontWeight: "700", fontSize: 16 }}>{unlocked.title}</Text>
+            <Text style={{ color: C.onPrimary }}>{unlocked.desc}</Text>
+          </View>
         </View>
       )}
       <View style={{ flex: 1 }}>
@@ -82,7 +87,7 @@ function Main() {
           <LessonScreen lesson={lesson} onBack={() => setLesson(null)}
             onFinish={(xp) => {
               const id = lesson.id;
-              update((x) => maybeLevelUp({ ...addXp(x, xp), doneLessons: [...new Set([...x.doneLessons, id])] }, lessonsFor(x.lang)));
+              update((x) => maybeLevelUp({ ...addDay(addXp(x, xp), { lessons: 1 }), doneLessons: [...new Set([...x.doneLessons, id])] }, lessonsFor(x.lang)));
               // Фразы из примеров урока попадают в словарь.
               addWords(lesson.examples.map((e) => ({ word: e.en, translation: e.ru, reading: e.ipa })));
               setLesson(null);

@@ -2,7 +2,7 @@
 // Если дневная цель сегодня уже выполнена, сегодня не напоминаем.
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
-import { Progress, today } from "./storage";
+import { goalStatus, Progress } from "./storage";
 
 const MESSAGES = [
   "Emma ждёт тебя! Пять минут занятий сегодня? 🔥",
@@ -26,7 +26,7 @@ export async function scheduleReminders(p: Progress): Promise<void> {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
     if (p.reminderHour === null) return;
-    const goalDone = today(p).xp >= p.dailyGoal;
+    const goalDone = goalStatus(p).done;
     for (let d = 0; d < 7; d++) {
       if (d === 0 && goalDone) continue;
       const date = new Date();

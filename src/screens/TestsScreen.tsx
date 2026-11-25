@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { EMMA, EmmaPic } from "../emma";
 import { askJson } from "../ai";
 import { EXAMS, levelFromScore, PLACEMENT, TestQuestion } from "../data/tests";
 import { useApp } from "../state";
@@ -68,7 +69,7 @@ export function TestsScreen({ onBack }: { onBack: () => void }) {
           </Card>
         </Pressable>
       ))}
-      {busy && <ActivityIndicator color={C.primary} />}
+      {busy && <View style={{ alignItems: "center" }}><EmmaPic source={EMMA.focus} size={120} /><ActivityIndicator color={C.primary} /></View>}
       {error && <Text style={{ color: C.danger }}>{error}</Text>}
     </ScrollView>
   );

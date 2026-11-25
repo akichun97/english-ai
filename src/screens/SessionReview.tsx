@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Image, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { askJson, ChatMessage } from "../ai";
-import { EMMA } from "../emma";
+import { EMMA, EmmaPic } from "../emma";
 import { useApp } from "../state";
 import { Button, C, Card, PlayButton, s } from "../ui";
 import { speak } from "../voice";
 
 type Review = {
   summary: string;
-  mistakes: { wrong: string; right: string; why: string }[];
+  mistakes: { topic: string; wrong: string; right: string; why: string }[];
   words: { word: string; reading: string; translation: string }[];
   tip: string;
 };
 
 /** Разбор урока: что получилось, ошибки, новые слова. */
 export function SessionReview({ messages, onClose }: { messages: ChatMessage[]; onClose: () => void }) {
-  const { lang, level, addWords, gainXp } = useApp();
+  const { lang, level, addWords, gainXp, addMistakes } = useApp();
   const [r, setR] = useState<Review | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<number | null>(null);
@@ -25,16 +25,16 @@ export function SessionReview({ messages, onClose }: { messages: ChatMessage[]; 
     askJson<Review>(
       `Ты Emma, преподаватель (${lang.name.toLowerCase()}). Разбери урок ученика уровня ${level}. Пиши по-русски, тепло и коротко.`,
       `Диалог:\n${dialog}\n\nВерни {"summary": "2-3 предложения: что получилось и над чем поработать", ` +
-        `"mistakes": [{"wrong": "фраза ученика", "right": "как правильно", "why": "коротко почему"}] (до 5, только реальные ошибки ученика), ` +
+        `"mistakes": [{"topic": "короткое название темы ошибки по-русски, например: Артикли a/an, Время Past Simple, Частица は", "wrong": "фраза ученика", "right": "как правильно", "why": "коротко почему"}] (до 5, только реальные ошибки ученика), ` +
         `"words": [{"word": "слово или фраза на изучаемом языке из урока", "reading": "${lang.id === "ja" ? "ромадзи" : "транскрипция IPA"}", "translation": "перевод"}] (5-8 полезных слов), ` +
         `"tip": "один совет на следующий урок"}`,
-    ).then(setR).catch((e) => setError((e as Error).message));
+    ).then((x) => { setR(x); addMistakes(x.mistakes ?? []); }).catch((e) => setError((e as Error).message));
   }, []);
 
   return (
     <ScrollView contentContainerStyle={s.pad}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Image source={r ? EMMA.love : EMMA.thinking} style={{ width: 72, height: 72, borderRadius: 36 }} />
+        <EmmaPic source={!r ? (error ? EMMA.sorry : EMMA.focus) : r.mistakes.length === 0 ? EMMA.achievement : r.mistakes.length >= 4 ? EMMA.support : EMMA.approval} size={80} />
         <View style={{ flex: 1 }}>
           <Text style={s.h1}>Итог урока</Text>
           <Text style={s.muted}>{r ? "Вот что я заметила" : error ? "Не получилось подвести итог" : "Emma подводит итог…"}</Text>
@@ -46,8 +46,10 @@ export function SessionReview({ messages, onClose }: { messages: ChatMessage[]; 
         <>
           <Card><Text style={s.p}>{r.summary}</Text></Card>
           {r.mistakes.length > 0 && <Text style={s.h2}>Ошибки</Text>}
+          {r.mistakes.length > 0 && <Text style={s.muted}>Я запомнила их: повторить можно в «Практика → Мои ошибки».</Text>}
           {r.mistakes.map((m, i) => (
             <Card key={i}>
+              {m.topic ? <Text style={[s.muted, { fontWeight: "600" }]}>{m.topic}</Text> : null}
               <Text style={{ color: C.danger, textDecorationLine: "line-through", fontSize: 15 }}>{m.wrong}</Text>
               <Text style={[s.p, { color: C.good, fontWeight: "600" }]}>{m.right}</Text>
               <Text style={s.muted}>{m.why}</Text>

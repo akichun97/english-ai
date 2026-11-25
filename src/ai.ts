@@ -83,12 +83,15 @@ export async function askJson<T>(system: string, prompt: string): Promise<T> {
   return JSON.parse(text.slice(start, end + 1)) as T;
 }
 
-export function teacherPrompt(lang: LangId, level: string, mode: string): string {
+export function teacherPrompt(lang: LangId, level: string, mode: string, weakSpots: string[] = []): string {
   const L = LANGS[lang];
+  const weak = weakSpots.length
+    ? `\n- The student often makes these mistakes: ${weakSpots.join("; ")}. Gently create chances to practise them and praise correct use.`
+    : "";
   const common = `Lesson mode: ${mode}.
 - Keep replies short (2-4 sentences) and always end with a question or a task, so the conversation keeps going.
 - When the student makes a mistake, add a final line starting with "✏️ " that shows the corrected sentence and a very short explanation in Russian.
-- Be warm and encouraging, never judgmental. Do not use markdown.`;
+- Be warm and encouraging, never judgmental. Do not use markdown.${weak}`;
   if (lang === "ja") {
     const beginner = isBeginner(lang, level);
     return `You are Emma, a warm, patient Japanese teacher in a mobile app for Russian speakers.
