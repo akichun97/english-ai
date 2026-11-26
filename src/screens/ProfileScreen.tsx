@@ -11,6 +11,13 @@ import { LEARNED_BOX } from "../vocab";
 import { Button, C, Card, Chip, s } from "../ui";
 import { OnboardingScreen } from "./OnboardingScreen";
 import { ActivityCalendar } from "./ActivityCalendar";
+import { hasVoice, openTtsSettings, previewVoice, VoiceLang, VoiceOption, voiceOptions } from "../voice";
+
+const SPEEDS = [
+  { v: 0.85, label: "Медленнее" },
+  { v: 1, label: "Обычно" },
+  { v: 1.15, label: "Быстрее" },
+];
 
 const GOALS = [10, 20, 30, 50];
 const MINUTES = [5, 10, 15, 30];
@@ -164,6 +171,8 @@ export function ProfileScreen() {
         })}
       </Card>
 
+      <VoiceCard />
+
       <Card>
         <Text style={s.h2}>Оформление</Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -196,5 +205,57 @@ function Stat({ value, label }: { value: string; label: string }) {
       <Text style={s.h2}>{value}</Text>
       <Text style={{ fontSize: 12, color: C.muted, textAlign: "center" }}>{label}</Text>
     </View>
+  );
+}
+
+function VoiceCard() {
+  const { p, update, lang } = useApp();
+  const code: VoiceLang = lang.id;
+  const [list, setList] = useState<VoiceOption[] | null>(null);
+  const [missing, setMissing] = useState(false);
+  useEffect(() => {
+    setList(null);
+    voiceOptions(code).then(setList);
+    hasVoice(code).then((ok) => setMissing(!ok));
+  }, [code]);
+
+  const chosen = p.voices[code];
+  const choose = (id: string | undefined) => {
+    update((x) => {
+      const voices = { ...x.voices };
+      if (id) voices[code] = id;
+      else delete voices[code];
+      return { ...x, voices };
+    });
+    previewVoice(code, id, p.voiceSpeed);
+  };
+
+  return (
+    <Card>
+      <Text style={s.h2}>Голос Emma</Text>
+      {missing ? (
+        <Text style={s.muted}>
+          На телефоне нет голоса для языка «{lang.name.toLowerCase()}», поэтому Emma говорит с акцентом.
+          Откройте настройки синтеза речи и скачайте голос (лучше Google, язык {code === "ja" ? "японский" : code === "tr" ? "турецкий" : "английский (США)"}).
+        </Text>
+      ) : (
+        <Text style={s.muted}>Нажмите на голос, чтобы послушать и выбрать. ★ — голос высокого качества. Самые живые — «онлайн» голоса Google.</Text>
+      )}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        <Chip label="Авто (лучший)" active={!chosen} onPress={() => choose(undefined)} />
+        {(list ?? []).map((v) => (
+          <Chip key={v.id} label={`${v.label}${v.good ? " ★" : ""}${v.online ? " · онлайн" : ""}`} active={chosen === v.id}
+            onPress={() => choose(v.id)} />
+        ))}
+      </View>
+      <Text style={[s.muted, { marginTop: 4 }]}>Скорость речи</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {SPEEDS.map((sp) => (
+          <Chip key={sp.v} label={sp.label} active={p.voiceSpeed === sp.v}
+            onPress={() => { update((x) => ({ ...x, voiceSpeed: sp.v })); previewVoice(code, chosen, sp.v); }} />
+        ))}
+      </View>
+      <Button title="Скачать другие голоса" kind="ghost" onPress={openTtsSettings} />
+    </Card>
   );
 }
