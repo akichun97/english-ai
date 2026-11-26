@@ -8,6 +8,7 @@ import { addDay, addXp, cur, goalStatus, loadProgress, Progress, saveProgress } 
 import { loadVocab, makeWord, mergeWords, saveVocab, Word } from "./vocab";
 import { loadMistakes, mergeMistakes, Mistake, saveMistakes, topMistakes } from "./mistakes";
 import { scheduleReminders } from "./reminders";
+import { setVoicePrefs } from "./voice";
 
 export type Notice = { title: string; desc: string };
 
@@ -70,6 +71,9 @@ export function AppProvider({ children, fallback }: { children: (p: Progress) =>
       : { title: `Новое достижение: ${fresh[0].title}`, desc: fresh[0].desc });
     setTimeout(() => setUnlocked(null), 4000);
   }, [p, words]);
+
+  // Голос Emma: передаём выбор из профиля в модуль озвучки.
+  useEffect(() => { if (p) setVoicePrefs(p.voices, p.voiceSpeed); }, [p?.voices, p?.voiceSpeed]);
 
   // Перепланируем напоминания, когда меняется цель, час или выполнение цели.
   const goalDone = p ? goalStatus(p).done : false;
