@@ -70,11 +70,11 @@ export function OnboardingScreen({ onCancel }: { onCancel?: () => void }) {
         <Pressable key={L.id} onPress={() => { setLang(L.id); setStep("intro"); }}>
           <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.primaryLight, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontSize: 18, fontWeight: "700", color: C.primary }}>{L.id === "ja" ? "あ" : "Aa"}</Text>
+              <Text style={{ fontSize: 18, fontWeight: "700", color: C.primary }}>{L.icon}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.h2}>{L.name}</Text>
-              <Text style={s.muted}>{L.id === "ja" ? "С нуля: азбука, приветствия, первые фразы" : "От A1 до C1, разговор и экзамены"}</Text>
+              <Text style={s.muted}>{L.tagline}</Text>
             </View>
           </Card>
         </Pressable>

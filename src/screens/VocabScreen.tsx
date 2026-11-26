@@ -49,7 +49,7 @@ export function VocabScreen({ onBack }: { onBack: () => void }) {
       const r = await askJson<{ word: string; reading: string; translation: string }>(
         `Ты словарь для русскоговорящего ученика (${lang.name.toLowerCase()}).`,
         `Слово или фраза: "${word}". Если это по-русски, переведи на ${lang.nameEn}. ` +
-          `Верни {"word": "на изучаемом языке", "reading": "${lang.id === "ja" ? "ромадзи" : "транскрипция IPA"}", "translation": "по-русски"}`,
+          `Верни {"word": "на изучаемом языке", "reading": "${lang.readingHint}", "translation": "по-русски"}`,
       );
       setWord(r.word);
       setReading(r.reading);

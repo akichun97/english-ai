@@ -38,7 +38,7 @@ export function ChatScreen() {
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   // На каком языке ученик говорит в микрофон. Новичку в японском удобнее по-русски.
-  const [micLang, setMicLang] = useState(lang.id === "ja" && isBeginner(lang.id, level) ? "ru-RU" : lang.speech);
+  const [micLang, setMicLang] = useState(lang.id !== "en" && isBeginner(lang.id, level) ? "ru-RU" : lang.speech);
   const scroll = useRef<ScrollViewInstance>(null);
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
@@ -62,7 +62,7 @@ export function ChatScreen() {
 
   useEffect(() => () => { stopSpeaking(); ExpoSpeechRecognitionModule.abort(); }, []);
   // Новый язык — новый разговор.
-  useEffect(() => { setMsgs([]); setVoice(false); setMicLang(lang.id === "ja" && isBeginner(lang.id, level) ? "ru-RU" : lang.speech); }, [lang.id]);
+  useEffect(() => { setMsgs([]); setVoice(false); setMicLang(lang.id !== "en" && isBeginner(lang.id, level) ? "ru-RU" : lang.speech); }, [lang.id]);
 
   async function listen() {
     setError(null);
@@ -167,7 +167,7 @@ export function ChatScreen() {
       : speaking ? (userTurns % 3 === 0 ? "delight" : "joy") : userTurns >= 8 ? "proud" : "support";
     const status = error ? "Что-то пошло не так" : listening ? "Слушаю…" : busy ? "Emma думает…"
       : speaking ? "Emma говорит" : "Нажмите на микрофон и говорите";
-    const micOptions = [{ code: lang.speech, label: lang.id === "ja" ? "Говорю по-японски" : "Говорю по-английски" }, { code: "ru-RU", label: "По-русски" }];
+    const micOptions = [{ code: lang.speech, label: lang.micLabel }, { code: "ru-RU", label: "По-русски" }];
     return (
       <VoiceCall mood={mood} status={status} active={listening || speaking} header={modeChips}
         caption={lastReply ? splitReply(lastReply.content) : null} transcript={listening ? input : ""}
@@ -201,9 +201,7 @@ export function ChatScreen() {
           <View style={{ gap: 12, alignItems: "center" }}>
             <EmmaPic source={EMMA.hello} size={200} />
             <Text style={[s.p, { textAlign: "center" }]}>
-              {lang.id === "ja"
-                ? "Привет! Я Emma. Отвечай как удобно: по-японски, латиницей или по-русски. Я покажу, как сказать правильно."
-                : "Привет! Я Emma. Пиши мне по-английски или поговорим голосом. Я поправлю ошибки и объясню их по-русски."}
+              {lang.chatIntro}
             </Text>
             <View style={{ alignSelf: "stretch", gap: 12 }}>
               <Button title="Голосовой урок" onPress={startVoice} disabled={busy} />

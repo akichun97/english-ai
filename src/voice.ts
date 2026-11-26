@@ -5,6 +5,9 @@ import { LangInfo } from "./lang";
 
 const JA = /[぀-ヿ㐀-鿿ｦ-ﾟ々〜ー]+[぀-ヿ㐀-鿿　-〿！-～\s]*/g;
 
+// Турецкий текст: латиница с турецкими буквами, без кириллицы.
+const TR = /[A-Za-zÇĞİÖŞÜçğıöşüâî][^А-Яа-яЁё]*/g;
+
 type Opts = { rate?: number; onDone?: () => void; onStop?: () => void };
 
 export function stopSpeaking() {
@@ -14,15 +17,19 @@ export function stopSpeaking() {
 export function speak(text: string, lang: LangInfo, opts: Opts = {}) {
   Speech.stop();
   const rate = opts.rate ?? 0.95;
-  if (lang.id !== "ja") {
+  if (lang.id === "en") {
     Speech.speak(text, { language: lang.speech, rate, onDone: opts.onDone, onStopped: opts.onStop, onError: opts.onStop });
     return;
   }
-  // Убираем ромадзи в скобках: его не нужно произносить.
-  const clean = text.replace(/\(([A-Za-zāīūēōĀĪŪĒŌ' ,.\-]+)\)/g, "");
+  // Убираем подсказку к чтению в скобках: ромадзи для японского, русские буквы для турецкого.
+  const clean = lang.id === "ja"
+    ? text.replace(/\(([A-Za-zāīūēōĀĪŪĒŌ' ,.\-]+)\)/g, "")
+    : text.replace(/([A-Za-zÇĞİÖŞÜçğıöşüâî.!?,]\s?)\([а-яёА-ЯЁ\u0301\s-]+\)/g, "$1");
+  // Куски на изучаемом языке читаем его голосом, русские — русским.
+  const re = lang.id === "ja" ? JA : TR;
   const parts: { t: string; ja: boolean }[] = [];
   let last = 0;
-  for (const m of clean.matchAll(JA)) {
+  for (const m of clean.matchAll(re)) {
     if (m.index! > last) parts.push({ t: clean.slice(last, m.index), ja: false });
     parts.push({ t: m[0], ja: true });
     last = m.index! + m[0].length;
@@ -32,7 +39,7 @@ export function speak(text: string, lang: LangInfo, opts: Opts = {}) {
   if (!spoken.length) { opts.onDone?.(); return; }
   spoken.forEach((x, i) =>
     Speech.speak(x.t, {
-      language: x.ja ? "ja-JP" : "ru-RU",
+      language: x.ja ? lang.speech : "ru-RU",
       rate: x.ja ? rate * 0.9 : rate,
       onDone: i === spoken.length - 1 ? opts.onDone : undefined,
       onStopped: i === spoken.length - 1 ? opts.onStop : undefined,

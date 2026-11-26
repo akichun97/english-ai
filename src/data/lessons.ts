@@ -1,6 +1,7 @@
 // Темы и задания. Новые уроки добавляются сюда и попадают в следующую сборку.
 import { LangId } from "../lang";
 import { LESSONS_JA } from "./lessons_ja";
+import { LESSONS_TR } from "./lessons_tr";
 export type Exercise =
   | { kind: "choice"; question: string; options: string[]; answer: number; hint?: string }
   | { kind: "translate"; ru: string; example: string } // проверяет ИИ
@@ -194,7 +195,7 @@ const LESSONS_EN: Lesson[] = [
   },
 ];
 
-export const LESSONS: Lesson[] = [...LESSONS_EN, ...LESSONS_JA];
+export const LESSONS: Lesson[] = [...LESSONS_EN, ...LESSONS_JA, ...LESSONS_TR];
 
 export function lessonsFor(lang: LangId): Lesson[] {
   return LESSONS.filter((l) => (l.lang ?? "en") === lang);
