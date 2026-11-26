@@ -31,6 +31,8 @@ export type Progress = {
   outfits: string[]; // открытые образы Emma
   reminderHour: number | null; // во сколько напоминать, null — не напоминать
   theme: ThemeMode;
+  voices: Record<string, string>; // выбранный голос Emma по коду языка (en, ja, ru); пусто — подбирается сам
+  voiceSpeed: number; // множитель скорости речи Emma
   counters: { voiceLessons: number; bestPron: number; perfectListening: number; reviews: number };
 };
 
@@ -39,6 +41,7 @@ const DEFAULT: Progress = {
   xp: 0, doneLessons: [], streak: 0, lastDay: null,
   lang: "en", langs: {}, onboarded: false, history: {}, achievements: [], outfit: "default",
   dailyGoal: 20, goalType: "xp", dailyMinutes: 15, outfits: ["default"], reminderHour: 19, theme: "system",
+  voices: {}, voiceSpeed: 1,
   counters: { voiceLessons: 0, bestPron: 0, perfectListening: 0, reviews: 0 },
 };
 

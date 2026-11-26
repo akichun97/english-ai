@@ -26,7 +26,7 @@ export function SessionReview({ messages, onClose }: { messages: ChatMessage[]; 
       `Ты Emma, преподаватель (${lang.name.toLowerCase()}). Разбери урок ученика уровня ${level}. Пиши по-русски, тепло и коротко.`,
       `Диалог:\n${dialog}\n\nВерни {"summary": "2-3 предложения: что получилось и над чем поработать", ` +
         `"mistakes": [{"topic": "короткое название темы ошибки по-русски, например: Артикли a/an, Время Past Simple, Частица は", "wrong": "фраза ученика", "right": "как правильно", "why": "коротко почему"}] (до 5, только реальные ошибки ученика), ` +
-        `"words": [{"word": "слово или фраза на изучаемом языке из урока", "reading": "${lang.id === "ja" ? "ромадзи" : "транскрипция IPA"}", "translation": "перевод"}] (5-8 полезных слов), ` +
+        `"words": [{"word": "слово или фраза на изучаемом языке из урока", "reading": "${lang.readingHint}", "translation": "перевод"}] (5-8 полезных слов), ` +
         `"tip": "один совет на следующий урок"}`,
     ).then((x) => { setR(x); addMistakes(x.mistakes ?? []); }).catch((e) => setError((e as Error).message));
   }, []);

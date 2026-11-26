@@ -33,7 +33,25 @@ const PLACEMENT_JA: TestQuestion[] = [
   { level: "N3", q: "彼は 来ない ＿ しれない。", options: ["かも", "はず", "べき"], answer: 0 },
 ];
 
-export const PLACEMENT: Record<LangId, TestQuestion[]> = { en: PLACEMENT_EN, ja: PLACEMENT_JA };
+const PLACEMENT_TR: TestQuestion[] = [
+  { level: "A1", q: "Как сказать «спасибо»?", options: ["Merhaba", "Teşekkür ederim", "Lütfen"], answer: 1 },
+  { level: "A1", q: "Ben öğrenci___.", options: ["yim", "sin", "yiz"], answer: 0 },
+  { level: "A1", q: "Bunlar kitap___.", options: ["ler", "lar", "lır"], answer: 1 },
+  { level: "A2", q: "Şimdi ne yap___sun?", options: ["ıyor", "acak", "tı"], answer: 0 },
+  { level: "A2", q: "Annem ev___. (дома)", options: ["da", "te", "de"], answer: 2 },
+  { level: "A2", q: "Okul___ geliyorum. (из школы)", options: ["da", "dan", "a"], answer: 1 },
+  { level: "B1", q: "Dün sinemaya git___.", options: ["tim", "eceğim", "iyorum"], answer: 0 },
+  { level: "B1", q: "Yarın yağmur yağ___. (завтра пойдёт дождь)", options: ["dı", "ıyor", "acak"], answer: 2 },
+  { level: "B1", q: "Türkçe konuş___ biliyor musun?", options: ["mak", "mayı", "tu"], answer: 1 },
+  { level: "B2", q: "Eğer zamanım ol___, sana yardım ederdim.", options: ["saydı", "acak", "du"], answer: 0 },
+  { level: "B2", q: "Eve gel___ önce bana haber ver.", options: ["ince", "meden", "ip"], answer: 1 },
+  { level: "B2", q: "Bu kitap herkes tarafından oku___. (читается всеми)", options: ["yor", "r", "nur"], answer: 2 },
+  { level: "C1", q: "«Sonuç olarak» означает:", options: ["в итоге", "кроме того", "тем не менее"], answer: 0 },
+  { level: "C1", q: "«Kaş yapayım derken göz çıkarmak» — это:", options: ["много работать", "исправляя, сделать хуже", "очень радоваться"], answer: 1 },
+  { level: "C1", q: "Ona güven___ olmaz. (ему нельзя доверять)", options: ["di", "ir", "mek"], answer: 2 },
+];
+
+export const PLACEMENT: Record<LangId, TestQuestion[]> = { en: PLACEMENT_EN, ja: PLACEMENT_JA, tr: PLACEMENT_TR };
 
 export const EXAMS: Record<LangId, { id: string; title: string; desc: string }[]> = {
   en: [
@@ -45,6 +63,11 @@ export const EXAMS: Record<LangId, { id: string; title: string; desc: string }[]
   ja: [
     { id: "jlpt-n5", title: "JLPT N5", desc: "Первый уровень экзамена по японскому" },
     { id: "jlpt-n4", title: "JLPT N4", desc: "Базовая грамматика и слова" },
+    { id: "general", title: "Проверка по уровню", desc: "Экзамен по вашему уровню" },
+  ],
+  tr: [
+    { id: "tomer", title: "TÖMER", desc: "Экзамен на знание турецкого в стиле Ankara TÖMER" },
+    { id: "tys", title: "Yunus Emre TYS", desc: "Международный тест по турецкому языку" },
     { id: "general", title: "Проверка по уровню", desc: "Экзамен по вашему уровню" },
   ],
 };

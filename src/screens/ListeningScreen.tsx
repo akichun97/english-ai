@@ -32,7 +32,7 @@ export function ListeningScreen({ onBack }: { onBack: () => void }) {
         `Write a short story or dialogue (${isBeginner(lang.id, level) ? "4-5 very simple sentences" : "6-8 sentences"}) in ${lang.nameEn} for level ${level}, topic: ${topic}. ` +
           (lang.id === "ja" ? "Use kana (and only very common kanji for N4+). " : "") +
           `Then 3 multiple-choice comprehension questions ${ruQuestions ? "in Russian" : `in ${lang.nameEn}`}. ` +
-          `Return {"title": "short title in Russian", "text": "the story", "reading": "${lang.id === "ja" ? "romaji of the story" : ""}", "translation": "Russian translation", ` +
+          `Return {"title": "short title in Russian", "text": "the story", "reading": "${lang.id === "ja" ? "romaji of the story" : lang.id === "tr" && ruQuestions ? "reading of the story in Russian letters" : ""}", "translation": "Russian translation", ` +
           `"questions": [{"q": string, "options": [3 strings], "answer": index}]}`,
       );
       setStory(r);

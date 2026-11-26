@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { askJson, askTeacher } from "../ai";
 import { useApp } from "../state";
+import { isOnline } from "../network";
 import { EMMA, EmmaPic } from "../emma";
 import { speak as speakText } from "../voice";
 import { Exercise, Lesson } from "../data/lessons";
@@ -48,7 +49,7 @@ export function LessonScreen({
           "Объясняй по-русски, просто и коротко (до 6 строк), без markdown.",
         [{ role: "user", content:
           `Задание: ${task}\nМой ответ: ${answer}\nПравильный вариант: ${rightSentence() ?? "-"}\n` +
-          (lang.id === "ja" ? "Объясни: 1) почему правильно именно так (правило), 2) как это читается: ромадзи всей фразы и на что обратить внимание в произношении." : "Объясни: 1) почему правильно именно так (правило), 2) как это читается: транскрипция всего предложения и на что обратить внимание в произношении.") }],
+          `Объясни: 1) почему правильно именно так (правило), 2) как это читается: ${lang.readingHint} для всей фразы и на что обратить внимание в произношении.` }],
         1500,
       );
       setWhy(reply);
@@ -61,11 +62,18 @@ export function LessonScreen({
 
   async function submitText() {
     if (!ex || ex.kind === "choice") return;
+    if (!isOnline()) {
+      // Без интернета ИИ не проверит: показываем образец, ученик сверяется сам.
+      setCheck(ex.kind === "translate"
+        ? { correct: true, feedback: "Нет интернета, поэтому Emma не может проверить. Сравните свой ответ с образцом:", corrected: ex.example }
+        : { correct: true, feedback: "Нет интернета, поэтому Emma не может проверить ответ. Задание засчитано, проверить можно позже в разговоре с Emma." });
+      return;
+    }
     setBusy(true);
     try {
       const task = ex.kind === "translate" ? `Translate into ${lang.nameEn}: "${ex.ru}" (reference: "${ex.example}")` : ex.task;
       const r = await askJson<Check>(
-        `You check answers of a ${level} ${lang.nameEn} learner (native Russian). Feedback in Russian, 1-2 sentences, kind tone.` + (lang.id === "ja" ? " Accept answers written in kana, kanji or romaji. In \"corrected\" give Japanese with romaji in parentheses." : ""),
+        `You check answers of a ${level} ${lang.nameEn} learner (native Russian). Feedback in Russian, 1-2 sentences, kind tone.` + (lang.id === "ja" ? " Accept answers written in kana, kanji or romaji. In \"corrected\" give Japanese with romaji in parentheses." : lang.id === "tr" ? " Accept answers typed without Turkish letters (s for ş, i for ı, g for ğ, c for ç, o for ö, u for ü) as correct, but show the proper spelling in \"corrected\"." : ""),
         `Task: ${task}\nStudent answer: "${text}"\nReturn {"correct": boolean, "feedback": string, "corrected": string}. Minor typos are acceptable.`,
       );
       setCheck(r);
@@ -119,7 +127,7 @@ export function LessonScreen({
               <PlayButton onPress={() => speak(e.en)} />
               <View style={{ flex: 1 }}>
                 <Text style={[s.p, { fontWeight: "600" }]}>{e.en}</Text>
-                <Text style={{ color: C.primary, fontSize: 15 }}>{lang.id === "ja" ? e.ipa : e.ipa}</Text>
+                <Text style={{ color: C.primary, fontSize: 15 }}>{e.ipa}</Text>
                 <Text style={s.muted}>{e.ru}</Text>
               </View>
             </Card>

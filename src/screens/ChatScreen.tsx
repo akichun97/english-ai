@@ -10,6 +10,8 @@ import { speak, stopSpeaking } from "../voice";
 import { Button, C, Chip, MicButton, s } from "../ui";
 import { EmmaProfile } from "./EmmaProfile";
 import { SessionReview } from "./SessionReview";
+import { SceneScore } from "./SceneScore";
+import { scenePrompt } from "../data/scenes";
 
 const MODES = [
   { id: "free", label: "Свободный разговор", mode: "free conversation on any topic the student likes" },
@@ -18,6 +20,15 @@ const MODES = [
   { id: "exam", label: "Устный экзамен", mode: "speaking exam simulation (IELTS Speaking for English, JLPT-style oral practice for Japanese); at the end give an estimated score with explanation in Russian" },
 ];
 
+/** Ответ Emma по частям: фраза на изучаемом языке, русский перевод (строки с «— »), исправление (✏️). */
+function splitLangs(text: string): { t: string; native: boolean; fix: boolean }[] {
+  return text.split(/\n+/).filter((l) => l.trim()).map((l) => ({
+    t: l.trim(),
+    fix: l.trim().startsWith("✏️"),
+    native: !l.trim().startsWith("—") && !l.trim().startsWith("✏️"),
+  }));
+}
+
 /** Основная часть ответа и строка с исправлением отдельно. */
 function splitReply(text: string): { main: string; fix: string | null } {
   const [main, ...rest] = text.split("✏️");
@@ -25,8 +36,11 @@ function splitReply(text: string): { main: string; fix: string | null } {
 }
 
 export function ChatScreen() {
-  const { p, lang, level, update, gainXp, weakSpots } = useApp();
+  const { p, lang, level, update, gainXp, weakSpots, scene, setScene } = useApp();
   const [mode, setMode] = useState(MODES[0]);
+  const [scoring, setScoring] = useState<ChatMessage[] | null>(null);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -38,7 +52,7 @@ export function ChatScreen() {
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   // На каком языке ученик говорит в микрофон. Новичку в японском удобнее по-русски.
-  const [micLang, setMicLang] = useState(lang.id === "ja" && isBeginner(lang.id, level) ? "ru-RU" : lang.speech);
+  const [micLang, setMicLang] = useState(lang.id !== "en" && isBeginner(lang.id, level) ? "ru-RU" : lang.speech);
   const scroll = useRef<ScrollViewInstance>(null);
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
@@ -62,7 +76,7 @@ export function ChatScreen() {
 
   useEffect(() => () => { stopSpeaking(); ExpoSpeechRecognitionModule.abort(); }, []);
   // Новый язык — новый разговор.
-  useEffect(() => { setMsgs([]); setVoice(false); setMicLang(lang.id === "ja" && isBeginner(lang.id, level) ? "ru-RU" : lang.speech); }, [lang.id]);
+  useEffect(() => { setMsgs([]); setVoice(false); setMicLang(lang.id !== "en" && isBeginner(lang.id, level) ? "ru-RU" : lang.speech); }, [lang.id]);
 
   async function listen() {
     setError(null);
@@ -102,7 +116,7 @@ export function ChatScreen() {
     setBusy(true);
     setError(null);
     try {
-      const reply = await askTeacher(teacherPrompt(lang.id, level, mode.mode, weakSpots), next);
+      const reply = await askTeacher(teacherPrompt(lang.id, level, modeRef.current.mode, weakSpots), next);
       setMsgs([...next, { role: "assistant", content: reply }]);
       gainXp(2);
       if (voiceRef.current) say(reply);
@@ -114,7 +128,19 @@ export function ChatScreen() {
     }
   }
 
+  // Новая сценка: отдельный режим, Emma начинает первой.
+  useEffect(() => {
+    if (!scene) return;
+    const m = { id: "scene", label: `${scene.emoji} ${scene.title}`, mode: scenePrompt(scene, lang.id) };
+    stopSpeaking();
+    setMode(m);
+    modeRef.current = m;
+    setMsgs([]);
+    send("(The student is ready. Start the scene.)", []);
+  }, [scene]);
+
   function start(m: (typeof MODES)[number]) {
+    setScene(null);
     stopSpeaking();
     ExpoSpeechRecognitionModule.abort();
     setMode(m);
@@ -142,6 +168,10 @@ export function ChatScreen() {
     if (spoke) setReview(msgs);
   }
 
+  if (scoring && scene) {
+    return <SceneScore scene={scene} messages={scoring} onClose={() => { setScoring(null); setScene(null); start(MODES[0]); }} />;
+  }
+
   if (review) {
     return <SessionReview messages={review} onClose={() => setReview(null)} />;
   }
@@ -155,6 +185,7 @@ export function ChatScreen() {
 
   const modeChips = (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 8, gap: 8 }} style={{ flexGrow: 0 }}>
+      {scene && <Chip label={`${scene.emoji} ${scene.title}`} active onPress={() => {}} />}
       {MODES.map((m) => <Chip key={m.id} label={m.label} active={m.id === mode.id} onPress={() => start(m)} />)}
     </ScrollView>
   );
@@ -167,7 +198,7 @@ export function ChatScreen() {
       : speaking ? (userTurns % 3 === 0 ? "delight" : "joy") : userTurns >= 8 ? "proud" : "support";
     const status = error ? "Что-то пошло не так" : listening ? "Слушаю…" : busy ? "Emma думает…"
       : speaking ? "Emma говорит" : "Нажмите на микрофон и говорите";
-    const micOptions = [{ code: lang.speech, label: lang.id === "ja" ? "Говорю по-японски" : "Говорю по-английски" }, { code: "ru-RU", label: "По-русски" }];
+    const micOptions = [{ code: lang.speech, label: lang.micLabel }, { code: "ru-RU", label: "По-русски" }];
     return (
       <VoiceCall mood={mood} status={status} active={listening || speaking} header={modeChips}
         caption={lastReply ? splitReply(lastReply.content) : null} transcript={listening ? input : ""}
@@ -197,13 +228,18 @@ export function ChatScreen() {
       {modeChips}
       <ScrollView ref={scroll} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => scroll.current?.scrollToEnd()}>
-        {msgs.length === 0 && (
+        {scene && (
+          <View style={{ backgroundColor: C.primaryLight, borderRadius: 16, padding: 12, gap: 4 }}>
+            <Text style={[s.p, { fontWeight: "700" }]}>Сценка: {scene.title}</Text>
+            {scene.goals.map((g) => <Text key={g} style={s.muted}>• {g}</Text>)}
+            <Button title="Оценить сценку" disabled={msgs.filter((m) => m.role === "user").length < 3 || busy} onPress={() => setScoring(msgs)} />
+          </View>
+        )}
+        {msgs.length === 0 && !scene && (
           <View style={{ gap: 12, alignItems: "center" }}>
             <EmmaPic source={EMMA.hello} size={200} />
             <Text style={[s.p, { textAlign: "center" }]}>
-              {lang.id === "ja"
-                ? "Привет! Я Emma. Отвечай как удобно: по-японски, латиницей или по-русски. Я покажу, как сказать правильно."
-                : "Привет! Я Emma. Пиши мне по-английски или поговорим голосом. Я поправлю ошибки и объясню их по-русски."}
+              {lang.chatIntro}
             </Text>
             <View style={{ alignSelf: "stretch", gap: 12 }}>
               <Button title="Голосовой урок" onPress={startVoice} disabled={busy} />
@@ -211,13 +247,18 @@ export function ChatScreen() {
             </View>
           </View>
         )}
-        {msgs.map((m, n) => (
+        {msgs.map((m, n) => m.content.startsWith("(The student is ready") ? null : (
           <View key={n} style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "88%" }}>
             {m.role === "assistant" && <EmmaPic source={outfit(p.outfit).face} size={30} circle />}
             <Pressable onLongPress={() => m.role === "assistant" && say(m.content)}
               style={{ flexShrink: 1, backgroundColor: m.role === "user" ? C.primary : C.card, borderRadius: 18, padding: 12,
                 borderWidth: m.role === "user" ? 0 : 1, borderColor: C.border }}>
-              <Text style={{ color: m.role === "user" ? C.onPrimary : C.text, fontSize: 16, lineHeight: 22 }}>{m.content}</Text>
+              {m.role === "user" ? (
+                <Text style={{ color: C.onPrimary, fontSize: 16, lineHeight: 22 }}>{m.content}</Text>
+              ) : splitLangs(m.content).map((part, i) => (
+                // Фраза на изучаемом языке крупнее, русский перевод и исправления — мельче.
+                <Text key={i} style={{ color: part.native ? C.text : part.fix ? C.primary : C.muted, fontSize: part.native ? 17 : 15, lineHeight: 22, marginTop: i ? 6 : 0 }}>{part.t}</Text>
+              ))}
             </Pressable>
           </View>
         ))}

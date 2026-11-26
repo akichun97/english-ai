@@ -67,7 +67,7 @@ function MistakeDetail({ m, onBack }: { m: Mistake; onBack: () => void }) {
         (lang.id === "ja" ? " Японский пиши каной с ромадзи в скобках." : ""),
       `Ученик несколько раз (${m.count}) ошибся в теме «${m.topic}». Последний случай: «${m.wrong}» вместо «${m.right}». ` +
         `Верни {"what": "что именно было не так, 1-2 предложения", "why": "правило простыми словами, 2-3 предложения", ` +
-        `"right": "правильный вариант", "example": {"text": "ещё один пример на ${lang.nameEn}", "reading": "${lang.id === "ja" ? "ромадзи" : "транскрипция IPA"}", "ru": "перевод"}, ` +
+        `"right": "правильный вариант", "example": {"text": "ещё один пример на ${lang.nameEn}", "reading": "${lang.readingHint}", "ru": "перевод"}, ` +
         `"exercise": {"question": "короткое задание на это правило, с пропуском ___ если подходит", "options": ["3 варианта"], "answer": индекс верного}}`,
     ).then(setL).catch((e) => setError((e as Error).message));
   }, []);

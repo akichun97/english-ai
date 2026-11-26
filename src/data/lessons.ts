@@ -1,6 +1,7 @@
 // Темы и задания. Новые уроки добавляются сюда и попадают в следующую сборку.
 import { LangId } from "../lang";
 import { LESSONS_JA } from "./lessons_ja";
+import { LESSONS_TR } from "./lessons_tr";
 export type Exercise =
   | { kind: "choice"; question: string; options: string[]; answer: number; hint?: string }
   | { kind: "translate"; ru: string; example: string } // проверяет ИИ
@@ -192,9 +193,95 @@ const LESSONS_EN: Lesson[] = [
       { kind: "write", task: "Аргументируйте мнение: «Работа из дома лучше офиса» (4–5 предложений)." },
     ],
   },
+  {
+    id: "reported-speech",
+    title: "Косвенная речь",
+    emoji: "💬",
+    level: "B2",
+    theory:
+      "Когда пересказываем чужие слова, время сдвигается на шаг назад: am/is → was, will → would, have done → had done.\nShe said (that) she was tired. Вопросы превращаются в утверждения: She asked if I liked coffee. He asked where I lived.",
+    why:
+      "В английском время «привязано» к моменту, когда слова пересказывают, а не когда их сказали. В русском так не делают («сказала, что устала»), поэтому это частая ошибка.\nЧтение: said читается /sed/, а не «сэйд».",
+    examples: [
+      { en: "She said she was tired.", ipa: "/ʃi ˈsed ʃi wəz ˈtaɪəd/", ru: "Она сказала, что устала." },
+      { en: "He told me he would call.", ipa: "/hi ˈtəʊld mi hi wʊd ˈkɔːl/", ru: "Он сказал мне, что позвонит." },
+      { en: "They asked where I lived.", ipa: "/ðeɪ ˈɑːskt weər aɪ ˈlɪvd/", ru: "Они спросили, где я живу." },
+    ],
+    exercises: [
+      { kind: "choice", question: "He said he ___ tired.", options: ["is", "was", "be"], answer: 1 },
+      { kind: "choice", question: "She asked me where I ___.", options: ["lived", "do live", "did live"], answer: 0, hint: "в вопросе-пересказе нет do/did" },
+      { kind: "choice", question: "\"I will help.\" → He said he ___ help.", options: ["will", "can", "would"], answer: 2 },
+      { kind: "translate", ru: "Она сказала, что любит музыку.", example: "She said she loved music." },
+      { kind: "write", task: "Перескажите в косвенной речи, что вам сегодня сказал кто-то из друзей или коллег (2–3 предложения)." },
+    ],
+  },
+  {
+    id: "passive-voice",
+    title: "Страдательный залог",
+    emoji: "🏗️",
+    level: "B2",
+    theory:
+      "Passive: be + третья форма глагола. Важно действие, а не кто его сделал.\nThe house was built in 1900. English is spoken here. The work will be finished tomorrow.\nКто сделал — через by: The book was written by Tolstoy.",
+    why:
+      "Форма be показывает время (is, was, will be, has been), а глагол всегда в третьей форме. Поэтому «был построен» — was built, а не was build.\nЧтение: окончание -ed после t/d звучит /ɪd/: painted, а после глухих — /t/: announced.",
+    examples: [
+      { en: "This bridge was built in 1890.", ipa: "/ðɪs ˈbrɪdʒ wəz ˈbɪlt ɪn ˌeɪtiːn ˈnaɪnti/", ru: "Этот мост построили в 1890 году." },
+      { en: "English is spoken all over the world.", ipa: "/ˈɪŋɡlɪʃ ɪz ˈspəʊkən ˌɔːl ˈəʊvə ðə ˈwɜːld/", ru: "На английском говорят по всему миру." },
+      { en: "The results will be announced tomorrow.", ipa: "/ðə rɪˈzʌlts wɪl bi əˈnaʊnst təˈmɒrəʊ/", ru: "Результаты объявят завтра." },
+    ],
+    exercises: [
+      { kind: "choice", question: "The letter ___ yesterday.", options: ["was sent", "sent", "is sending"], answer: 0 },
+      { kind: "choice", question: "Cars ___ in this factory.", options: ["make", "are made", "are making"], answer: 1 },
+      { kind: "choice", question: "The room ___ every day.", options: ["cleans", "cleaned", "is cleaned"], answer: 2 },
+      { kind: "translate", ru: "Этот фильм сняли в Японии.", example: "This film was made in Japan." },
+    ],
+  },
+  {
+    id: "inversion",
+    title: "Инверсия для выразительности",
+    emoji: "🔄",
+    level: "C1",
+    theory:
+      "После отрицательных и ограничительных слов в начале фразы порядок как в вопросе.\nNever have I seen such a view. Not only is she smart, but she is also kind. Rarely do we get such a chance. Hardly had I arrived when it started to rain.",
+    why:
+      "Инверсия делает речь торжественной и эмоциональной: так пишут в эссе и говорят в выступлениях. В обычной речи то же самое скажут проще: I have never seen such a view.\nЧтение: ударение на первом слове: NEVer have I…",
+    examples: [
+      { en: "Never have I seen such a beautiful view.", ipa: "/ˈnevə həv aɪ ˈsiːn sʌtʃ ə ˈbjuːtɪfl ˈvjuː/", ru: "Никогда я не видел такого красивого вида." },
+      { en: "Not only is she smart, but she is also kind.", ipa: "/ˌnɒt ˈəʊnli ɪz ʃi ˈsmɑːt bət ʃi ɪz ˈɔːlsəʊ ˈkaɪnd/", ru: "Она не только умная, но и добрая." },
+      { en: "Rarely do we get such a chance.", ipa: "/ˈreəli də wi ˈɡet sʌtʃ ə ˈtʃɑːns/", ru: "Редко нам выпадает такой шанс." },
+    ],
+    exercises: [
+      { kind: "choice", question: "Never ___ such a mess.", options: ["I have seen", "have I seen", "I saw"], answer: 1 },
+      { kind: "choice", question: "Not only ___ late, but he also forgot the tickets.", options: ["was he", "he was", "he is"], answer: 0 },
+      { kind: "choice", question: "Rarely ___ him smile.", options: ["we see", "we do see", "do we see"], answer: 2 },
+      { kind: "translate", ru: "Никогда я не слышал такой красивой песни.", example: "Never have I heard such a beautiful song." },
+    ],
+  },
+  {
+    id: "mixed-conditionals",
+    title: "Смешанные условные",
+    emoji: "🧩",
+    level: "C1",
+    theory:
+      "Прошлое условие → результат сейчас: If I had studied harder, I would be a doctor now.\nНастоящее свойство → результат в прошлом: If I were braver, I would have told her.",
+    why:
+      "Каждая половина фразы берёт своё время: условие — когда это было (had done = в прошлом, were = всегда/сейчас), результат — когда последствия (would be = сейчас, would have done = в прошлом).\nЧтение: would have сливается в /wʊdəv/.",
+    examples: [
+      { en: "If I had studied harder, I would be a doctor now.", ipa: "/ɪf aɪ həd ˈstʌdid ˈhɑːdə aɪ wʊd bi ə ˈdɒktə naʊ/", ru: "Если бы я учился усерднее, я бы сейчас был врачом." },
+      { en: "If I were braver, I would have told her.", ipa: "/ɪf aɪ wə ˈbreɪvə aɪ wʊdəv ˈtəʊld hɜː/", ru: "Будь я смелее, я бы ей сказал." },
+      { en: "If we had left earlier, we wouldn't be stuck in traffic.", ipa: "/ɪf wi həd left ˈɜːliə wi ˈwʊdnt bi stʌk ɪn ˈtræfɪk/", ru: "Если бы мы выехали раньше, мы бы не стояли в пробке." },
+    ],
+    exercises: [
+      { kind: "choice", question: "If I ___ the bus, I would be at home now.", options: ["didn't miss", "hadn't missed", "wouldn't miss"], answer: 1 },
+      { kind: "choice", question: "If she were more careful, she ___ that mistake yesterday.", options: ["wouldn't have made", "wouldn't make", "didn't make"], answer: 0 },
+      { kind: "choice", question: "If we ___ tickets, we would be at the concert now.", options: ["bought", "have bought", "had bought"], answer: 2 },
+      { kind: "translate", ru: "Если бы я выучил английский в детстве, я бы сейчас жил в Лондоне.", example: "If I had learned English as a child, I would live in London now." },
+      { kind: "write", task: "Напишите 2 смешанных условных предложения о своей жизни." },
+    ],
+  },
 ];
 
-export const LESSONS: Lesson[] = [...LESSONS_EN, ...LESSONS_JA];
+export const LESSONS: Lesson[] = [...LESSONS_EN, ...LESSONS_JA, ...LESSONS_TR];
 
 export function lessonsFor(lang: LangId): Lesson[] {
   return LESSONS.filter((l) => (l.lang ?? "en") === lang);
