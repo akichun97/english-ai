@@ -101,44 +101,32 @@ export async function askJson<T>(system: string, prompt: string): Promise<T> {
 
 export function teacherPrompt(lang: LangId, level: string, mode: string, weakSpots: string[] = []): string {
   const L = LANGS[lang];
+  const beginner = isBeginner(lang, level);
   const weak = weakSpots.length
     ? `\n- The student often makes these mistakes: ${weakSpots.join("; ")}. Gently create chances to practise them and praise correct use.`
     : "";
-  const common = `Lesson mode: ${mode}.
-- Keep replies short (2-4 sentences) and always end with a question or a task, so the conversation keeps going.
+  // Как писать на изучаемом языке.
+  const script = lang === "ja"
+    ? "Write Japanese in kana (common kanji allowed for N4+), followed by romaji in parentheses."
+    : lang === "tr"
+      ? (beginner
+        ? "Write Turkish with correct letters (ç, ğ, ı, İ, ö, ş, ü), followed by its reading in Russian letters in parentheses (no accent marks)."
+        : "Write Turkish with correct letters (ç, ğ, ı, İ, ö, ş, ü).")
+      : "Write natural English.";
+  const extra = lang === "ja"
+    ? "- The student may answer in Russian, in romaji or in Japanese. Understand any of them and show how to say it correctly in Japanese."
+    : lang === "tr"
+      ? "- The student may answer in Russian or in Turkish, possibly without Turkish letters. Understand both and show how to say it correctly in Turkish.\n- Explain Turkish logic simply: suffixes stick to the word one after another, vowel harmony chooses -lar/-ler, -da/-de etc."
+      : "- If the student writes in Russian, understand it and show how to say it in English.";
+  return `You are Emma, a warm, lively ${L.nameEn} teacher in a mobile app for Russian speakers.
+Student level: ${level}.
+Lesson mode: ${mode}.
+Reply format (always, for every reply):
+1. First say everything in ${L.nameEn}, using words and grammar suited to the level (${beginner ? "very short, simple sentences" : "natural sentences"}). ${script}
+2. Then a new line starting with "— " and the same message in natural spoken Russian${beginner ? ", plus a very short hint for a new word if needed" : ""}.
+Rules:
+- Keep it short: 1-3 sentences in ${L.nameEn}, and always end with a question or a task, so the conversation keeps going.
 - When the student makes a mistake, add a final line starting with "✏️ " that shows the corrected sentence and a very short explanation in Russian.
+${extra}
 - Be warm and encouraging, never judgmental. Do not use markdown.${weak}`;
-  if (lang === "ja") {
-    const beginner = isBeginner(lang, level);
-    return `You are Emma, a warm, patient Japanese teacher in a mobile app for Russian speakers.
-Student level (JLPT): ${level}.
-Rules:
-- ${beginner
-      ? "The student is a beginner. Speak mostly Russian. Introduce only 1-2 short Japanese phrases per reply."
-      : "Speak mostly Japanese suited to the level; add Russian explanations only for hard points."}
-- Always write Japanese in kana (kanji only with furigana-level words for N3+), followed by romaji in parentheses and a Russian translation, e.g.: こんにちは (konnichiwa) — здравствуйте.
-- The student may answer in Russian, in romaji or in Japanese. Understand any of them and show how to say it correctly in Japanese.
-${common}`;
-  }
-  if (lang === "tr") {
-    const beginner = isBeginner(lang, level);
-    return `You are Emma, a warm, patient Turkish teacher in a mobile app for Russian speakers.
-Student level (CEFR): ${level}.
-Rules:
-- ${beginner
-      ? "The student is a beginner. Speak mostly Russian. Introduce only 1-2 short Turkish phrases per reply."
-      : "Speak mostly Turkish suited to the level; add Russian explanations only for hard points."}
-- ${beginner
-      ? "Write each Turkish phrase followed by its reading in Russian letters in parentheses (no accent marks), and a Russian translation, e.g.: Merhaba (мерхаба) — здравствуйте."
-      : "Use correct Turkish letters (ç, ğ, ı, İ, ö, ş, ü). Translate rare words into Russian in parentheses."}
-- The student may answer in Russian or in Turkish, possibly without Turkish letters. Understand both and show how to say it correctly in Turkish.
-- Explain Turkish logic simply: suffixes stick to the word one after another, vowel harmony chooses -lar/-ler, -da/-de etc.
-${common}`;
-  }
-  return `You are Emma, a warm, patient ${L.nameEn} teacher in a mobile app for Russian speakers.
-Student level (CEFR): ${level}.
-Rules:
-- Talk mostly in ${L.nameEn}, using vocabulary and grammar suited to the student's level.
-- If the student writes in Russian or asks for help, briefly explain in Russian, then return to ${L.nameEn}.
-${common}`;
 }

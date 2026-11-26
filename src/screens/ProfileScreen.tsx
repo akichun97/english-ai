@@ -210,7 +210,26 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 function VoiceCard() {
   const { p, update, lang } = useApp();
-  const code: VoiceLang = lang.id;
+  return (
+    <Card>
+      <Text style={s.h2}>Голос Emma</Text>
+      <Text style={s.muted}>Нажмите на голос, чтобы послушать и выбрать. ★ — голос высокого качества. Самые живые — «онлайн» голоса Google.</Text>
+      <VoicePicker code={lang.id} title={lang.name} />
+      <VoicePicker code="ru" title="Русский (пояснения Emma)" />
+      <Text style={[s.muted, { marginTop: 4 }]}>Скорость речи</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {SPEEDS.map((sp) => (
+          <Chip key={sp.v} label={sp.label} active={p.voiceSpeed === sp.v}
+            onPress={() => { update((x) => ({ ...x, voiceSpeed: sp.v })); previewVoice(lang.id, p.voices[lang.id], sp.v); }} />
+        ))}
+      </View>
+      <Button title="Скачать другие голоса" kind="ghost" onPress={openTtsSettings} />
+    </Card>
+  );
+}
+
+function VoicePicker({ code, title }: { code: VoiceLang; title: string }) {
+  const { p, update } = useApp();
   const [list, setList] = useState<VoiceOption[] | null>(null);
   const [missing, setMissing] = useState(false);
   useEffect(() => {
@@ -229,17 +248,13 @@ function VoiceCard() {
     });
     previewVoice(code, id, p.voiceSpeed);
   };
+  const names: Record<VoiceLang, string> = { en: "английский (США)", ja: "японский", tr: "турецкий", ru: "русский" };
 
   return (
-    <Card>
-      <Text style={s.h2}>Голос Emma</Text>
-      {missing ? (
-        <Text style={s.muted}>
-          На телефоне нет голоса для языка «{lang.name.toLowerCase()}», поэтому Emma говорит с акцентом.
-          Откройте настройки синтеза речи и скачайте голос (лучше Google, язык {code === "ja" ? "японский" : code === "tr" ? "турецкий" : "английский (США)"}).
-        </Text>
-      ) : (
-        <Text style={s.muted}>Нажмите на голос, чтобы послушать и выбрать. ★ — голос высокого качества. Самые живые — «онлайн» голоса Google.</Text>
+    <View style={{ gap: 6 }}>
+      <Text style={[s.p, { fontWeight: "600" }]}>{title}</Text>
+      {missing && (
+        <Text style={s.muted}>На телефоне нет такого голоса. Нажмите «Скачать другие голоса» и скачайте голос Google, язык {names[code]}.</Text>
       )}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         <Chip label="Авто (лучший)" active={!chosen} onPress={() => choose(undefined)} />
@@ -248,14 +263,6 @@ function VoiceCard() {
             onPress={() => choose(v.id)} />
         ))}
       </View>
-      <Text style={[s.muted, { marginTop: 4 }]}>Скорость речи</Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {SPEEDS.map((sp) => (
-          <Chip key={sp.v} label={sp.label} active={p.voiceSpeed === sp.v}
-            onPress={() => { update((x) => ({ ...x, voiceSpeed: sp.v })); previewVoice(code, chosen, sp.v); }} />
-        ))}
-      </View>
-      <Button title="Скачать другие голоса" kind="ghost" onPress={openTtsSettings} />
-    </Card>
+    </View>
   );
 }

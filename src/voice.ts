@@ -131,7 +131,7 @@ export function stopSpeaking() {
 export async function previewVoice(code: VoiceLang, id: string | undefined, rate = 1) {
   await loadVoices();
   Speech.stop();
-  Speech.speak(SAMPLES[code], { language: code, voice: id ?? pickVoice(code), rate: 0.95 * rate, pitch: 1 });
+  Speech.speak(SAMPLES[code], { language: code, voice: id ?? pickVoice(code), rate: 0.95 * rate * (code === "ru" ? 1.08 : 1), pitch: code === "ru" ? 1.08 : 1 });
 }
 
 type Opts = { rate?: number; onDone?: () => void; onStop?: () => void };
@@ -180,8 +180,9 @@ export function speak(text: string, lang: LangInfo, opts: Opts = {}) {
       Speech.speak(x.t, {
         language: x.code,
         voice: pickVoice(x.code),
-        pitch: 1,
-        rate: x.code === "ja" ? rate * 0.9 : rate,
+        // Русский голос чуть быстрее и выше: так он звучит живее и меньше похож на диктора.
+        pitch: x.code === "ru" ? 1.08 : 1,
+        rate: x.code === "ja" ? rate * 0.9 : x.code === "ru" ? rate * 1.08 : rate,
         onDone: i === spoken.length - 1 ? opts.onDone : undefined,
         onStopped: i === spoken.length - 1 ? opts.onStop : undefined,
         onError: opts.onStop,

@@ -20,6 +20,15 @@ const MODES = [
   { id: "exam", label: "Устный экзамен", mode: "speaking exam simulation (IELTS Speaking for English, JLPT-style oral practice for Japanese); at the end give an estimated score with explanation in Russian" },
 ];
 
+/** Ответ Emma по частям: фраза на изучаемом языке, русский перевод (строки с «— »), исправление (✏️). */
+function splitLangs(text: string): { t: string; native: boolean; fix: boolean }[] {
+  return text.split(/\n+/).filter((l) => l.trim()).map((l) => ({
+    t: l.trim(),
+    fix: l.trim().startsWith("✏️"),
+    native: !l.trim().startsWith("—") && !l.trim().startsWith("✏️"),
+  }));
+}
+
 /** Основная часть ответа и строка с исправлением отдельно. */
 function splitReply(text: string): { main: string; fix: string | null } {
   const [main, ...rest] = text.split("✏️");
@@ -244,7 +253,12 @@ export function ChatScreen() {
             <Pressable onLongPress={() => m.role === "assistant" && say(m.content)}
               style={{ flexShrink: 1, backgroundColor: m.role === "user" ? C.primary : C.card, borderRadius: 18, padding: 12,
                 borderWidth: m.role === "user" ? 0 : 1, borderColor: C.border }}>
-              <Text style={{ color: m.role === "user" ? C.onPrimary : C.text, fontSize: 16, lineHeight: 22 }}>{m.content}</Text>
+              {m.role === "user" ? (
+                <Text style={{ color: C.onPrimary, fontSize: 16, lineHeight: 22 }}>{m.content}</Text>
+              ) : splitLangs(m.content).map((part, i) => (
+                // Фраза на изучаемом языке крупнее, русский перевод и исправления — мельче.
+                <Text key={i} style={{ color: part.native ? C.text : part.fix ? C.primary : C.muted, fontSize: part.native ? 17 : 15, lineHeight: 22, marginTop: i ? 6 : 0 }}>{part.t}</Text>
+              ))}
             </Pressable>
           </View>
         ))}

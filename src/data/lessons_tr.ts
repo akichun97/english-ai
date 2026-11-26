@@ -227,4 +227,72 @@ export const LESSONS_TR: Lesson[] = [
       { kind: "translate", ru: "Этот дом построили в 1900 году.", example: "Bu ev 1900 yılında yapıldı." },
     ],
   },
+  {
+    id: "tr-participles",
+    lang: "tr",
+    title: "«Который»: причастия -en и -dik",
+    emoji: "🔗",
+    level: "C1",
+    theory:
+      "В турецком нет слова «который»: определение-оборот ставится перед словом.\n-en/-an — когда слово само делает действие: kitap okuyan kız — девушка, которая читает книгу.\n-dik + притяжательное — когда действие совершают над ним: okuduğum kitap — книга, которую я читаю.\n-ecek (olan) — в будущем: gelecek olan misafirler — гости, которые придут.",
+    why:
+      "Порядок обратный русскому: сначала весь оборот, потом главное слово. Притяжательное окончание показывает, кто делает действие: okuduğum (я), okuduğun (ты), okuduğu (он).\nЧтение: ğ не звучит, поэтому okuduğum — «окудуум».",
+    examples: [
+      { en: "Kitap okuyan kız benim kardeşim.", ipa: "китап окуян кыз беним кардешим", ru: "Девушка, которая читает книгу, — моя сестра." },
+      { en: "Okuduğum kitap çok ilginç.", ipa: "окудуум китап чок ильгинч", ru: "Книга, которую я читаю, очень интересная." },
+      { en: "Tanıştığımız gün yağmur yağıyordu.", ipa: "таныштыымыз гюн ягмур ягыйорду", ru: "В день, когда мы познакомились, шёл дождь." },
+    ],
+    exercises: [
+      { kind: "choice", question: "Türkçe konuş___ adam rehberdi. (человек, который говорит)", options: ["an", "tuğum", "duğu"], answer: 0 },
+      { kind: "choice", question: "Dün izle___ film harikaydı. (фильм, который я посмотрел)", options: ["yen", "diğim", "ecek"], answer: 1 },
+      { kind: "choice", question: "Yarın gel___ misafirler kim? (гости, которые придут)", options: ["diğim", "en", "ecek olan"], answer: 2 },
+      { kind: "translate", ru: "Город, в котором я живу, очень красивый.", example: "Yaşadığım şehir çok güzel." },
+      { kind: "write", task: "Опишите 3 вещи или людей с помощью оборотов на -en и -dik (например: «книга, которую я люблю»)." },
+    ],
+  },
+  {
+    id: "tr-connectors",
+    lang: "tr",
+    title: "Связки: потому что, несмотря на, чем больше",
+    emoji: "🧵",
+    level: "C1",
+    theory:
+      "-dığı için — потому что: Yorgun olduğum için erken yattım.\n-masına rağmen — несмотря на то что: Yağmur yağmasına rağmen dışarı çıktık.\n-dıkça — чем больше…, тем: Okudukça öğreniyorsun.\n-ınca — когда, как только: Eve gelince seni ararım.",
+    why:
+      "Придаточные строятся не союзом, а окончанием на глаголе, а связка стоит после него. Поэтому «потому что я устал» — yorgun olduğum için: сначала причина, потом «для».\nЧтение: rağmen — «раамен», ğ тянет гласную.",
+    examples: [
+      { en: "Yorgun olduğum için erken yattım.", ipa: "йоргун олдуум ичин эркен яттым", ru: "Я лёг рано, потому что устал." },
+      { en: "Yağmur yağmasına rağmen dışarı çıktık.", ipa: "ягмур яамасына раамен дышары чыктык", ru: "Несмотря на дождь, мы вышли на улицу." },
+      { en: "Türkçe konuştukça daha rahat oluyorum.", ipa: "тюркче конуштукча даха рахат олуйорум", ru: "Чем больше говорю по-турецки, тем свободнее себя чувствую." },
+    ],
+    exercises: [
+      { kind: "choice", question: "Hasta ol___ için gelemedim.", options: ["duğum", "masına", "dukça"], answer: 0 },
+      { kind: "choice", question: "Çok çalış___ rağmen sınavı geçemedi.", options: ["tığı", "masına", "ınca"], answer: 1 },
+      { kind: "choice", question: "Eve gel___ seni ararım. (как только приду)", options: ["diğim için", "dikçe", "ince"], answer: 2 },
+      { kind: "translate", ru: "Несмотря на то что было холодно, мы пошли к морю.", example: "Hava soğuk olmasına rağmen denize gittik." },
+      { kind: "write", task: "Напишите 3 предложения о себе со связками -dığı için, -masına rağmen и -dıkça." },
+    ],
+  },
+  {
+    id: "tr-idioms",
+    lang: "tr",
+    title: "Живые выражения и идиомы",
+    emoji: "🧿",
+    level: "C1",
+    theory:
+      "Kolay gelsin — «лёгкой работы», говорят тому, кто работает.\nEllerine sağlık — «здоровья твоим рукам», спасибо за угощение.\nGeçmiş olsun — «пусть пройдёт», выздоравливай или сочувствую.\nGöz atmak — бегло просмотреть. Ağzı kulaklarında — рот до ушей, очень рад.",
+    why:
+      "Эти фразы в Турции звучат каждый день, и дословный перевод их не объясняет. Когда иностранец к месту говорит «Kolay gelsin» или «Ellerine sağlık», это сразу звучит естественно и вызывает улыбку.\nЧтение: sağlık — «саалык».",
+    examples: [
+      { en: "Kolay gelsin!", ipa: "колай гельсин", ru: "Лёгкой работы! (Бог в помощь!)" },
+      { en: "Ellerine sağlık, çok lezzetliydi.", ipa: "эллерине саалык, чок лезетлийди", ru: "Спасибо, было очень вкусно." },
+      { en: "Raporuna göz attım.", ipa: "рапоруна гёз аттым", ru: "Я просмотрел твой отчёт." },
+    ],
+    exercises: [
+      { kind: "choice", question: "Что сказать хозяйке после вкусного ужина?", options: ["Kolay gelsin", "Ellerine sağlık", "Geçmiş olsun"], answer: 1 },
+      { kind: "choice", question: "Друг заболел. Что ему сказать?", options: ["Geçmiş olsun", "Afiyet olsun", "Kolay gelsin"], answer: 0 },
+      { kind: "choice", question: "«Ağzı kulaklarında» значит:", options: ["он очень зол", "он не слушает", "он очень рад"], answer: 2 },
+      { kind: "write", task: "Составьте короткий диалог (3–4 реплики), где к месту звучат два выражения из урока." },
+    ],
+  },
 ];
