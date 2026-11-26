@@ -11,6 +11,7 @@
 import * as Speech from "expo-speech";
 import { Linking, Platform } from "react-native";
 import { LangInfo } from "./lang";
+import { isOnline as netOnline } from "./network";
 
 export type VoiceLang = "en" | "ja" | "ru" | "tr";
 export type VoiceOption = { id: string; label: string; region: string; good: boolean; online: boolean };
@@ -100,8 +101,11 @@ export async function voiceOptions(code: VoiceLang): Promise<VoiceOption[]> {
 
 function pickVoice(code: VoiceLang): string | undefined {
   const mine = prefs[code];
-  if (mine && (!voices.length || voices.some((v) => v.identifier === mine))) return mine;
-  return forLang(code)[0]?.identifier;
+  const list = forLang(code);
+  // Без интернета онлайн-голос не заговорит, берём голос, скачанный на телефон.
+  const usable = netOnline() ? list : list.filter((v) => !isOnline(v));
+  if (mine && (!voices.length || usable.some((v) => v.identifier === mine))) return mine;
+  return (usable[0] ?? list[0])?.identifier;
 }
 
 /** Есть ли на телефоне голос нужного языка (если список голосов вообще удалось получить). */

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "English AI",
+    "name": "Emma",
     "slug": "english-ai",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -33,7 +33,15 @@
           ]
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Камера нужна, чтобы Emma перевела вывеску или меню с фото.",
+          "photosPermission": "Доступ к фото нужен, чтобы Emma перевела текст с картинки.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }

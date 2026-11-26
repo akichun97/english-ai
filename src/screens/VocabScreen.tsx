@@ -7,6 +7,7 @@ import { dailyPick, FILTERS, isHard, isLearned, isNew, review, VocabFilter, Word
 import { EMMA, EmmaPic } from "../emma";
 import { Bar, Button, C, Card, Chip, PlayButton, s } from "../ui";
 import { speak } from "../voice";
+import { useOnline } from "../network";
 
 export function VocabScreen({ onBack }: { onBack: () => void }) {
   const { lang, langWords, setWords, addWords, gainXp, update } = useApp();
@@ -19,6 +20,7 @@ export function VocabScreen({ onBack }: { onBack: () => void }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [filter, setFilter] = useState<VocabFilter>("all");
+  const online = useOnline();
 
   const pick = dailyPick(langWords);
   const hardAll = langWords.filter(isHard);
@@ -126,7 +128,7 @@ export function VocabScreen({ onBack }: { onBack: () => void }) {
         <TextInput style={s.input} value={translation} onChangeText={setTranslation} placeholder="Перевод" placeholderTextColor={C.muted} />
         <TextInput style={s.input} value={reading} onChangeText={setReading} placeholder={lang.readingLabel + " (необязательно)"} placeholderTextColor={C.muted} />
         <View style={{ flexDirection: "row", gap: 12 }}>
-          <View style={{ flex: 1 }}><Button title={busy ? "…" : "Заполнить с ИИ"} kind="ghost" onPress={translate} disabled={busy || !word.trim()} /></View>
+          <View style={{ flex: 1 }}><Button title={busy ? "…" : "Заполнить с ИИ"} kind="ghost" onPress={translate} disabled={busy || !word.trim() || !online} /></View>
           <View style={{ flex: 1 }}>
             <Button title="Добавить" disabled={!word.trim() || !translation.trim()}
               onPress={() => { const n = addWords([{ word, translation, reading }]); setMsg(n ? "Добавлено ✓" : "Такое слово уже есть"); setWord(""); setTranslation(""); setReading(""); }} />

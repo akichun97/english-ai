@@ -10,6 +10,8 @@ import { speak, stopSpeaking } from "../voice";
 import { Button, C, Chip, MicButton, s } from "../ui";
 import { EmmaProfile } from "./EmmaProfile";
 import { SessionReview } from "./SessionReview";
+import { SceneScore } from "./SceneScore";
+import { scenePrompt } from "../data/scenes";
 
 const MODES = [
   { id: "free", label: "Свободный разговор", mode: "free conversation on any topic the student likes" },
@@ -25,8 +27,11 @@ function splitReply(text: string): { main: string; fix: string | null } {
 }
 
 export function ChatScreen() {
-  const { p, lang, level, update, gainXp, weakSpots } = useApp();
+  const { p, lang, level, update, gainXp, weakSpots, scene, setScene } = useApp();
   const [mode, setMode] = useState(MODES[0]);
+  const [scoring, setScoring] = useState<ChatMessage[] | null>(null);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -102,7 +107,7 @@ export function ChatScreen() {
     setBusy(true);
     setError(null);
     try {
-      const reply = await askTeacher(teacherPrompt(lang.id, level, mode.mode, weakSpots), next);
+      const reply = await askTeacher(teacherPrompt(lang.id, level, modeRef.current.mode, weakSpots), next);
       setMsgs([...next, { role: "assistant", content: reply }]);
       gainXp(2);
       if (voiceRef.current) say(reply);
@@ -114,7 +119,19 @@ export function ChatScreen() {
     }
   }
 
+  // Новая сценка: отдельный режим, Emma начинает первой.
+  useEffect(() => {
+    if (!scene) return;
+    const m = { id: "scene", label: `${scene.emoji} ${scene.title}`, mode: scenePrompt(scene, lang.id) };
+    stopSpeaking();
+    setMode(m);
+    modeRef.current = m;
+    setMsgs([]);
+    send("(The student is ready. Start the scene.)", []);
+  }, [scene]);
+
   function start(m: (typeof MODES)[number]) {
+    setScene(null);
     stopSpeaking();
     ExpoSpeechRecognitionModule.abort();
     setMode(m);
@@ -142,6 +159,10 @@ export function ChatScreen() {
     if (spoke) setReview(msgs);
   }
 
+  if (scoring && scene) {
+    return <SceneScore scene={scene} messages={scoring} onClose={() => { setScoring(null); setScene(null); start(MODES[0]); }} />;
+  }
+
   if (review) {
     return <SessionReview messages={review} onClose={() => setReview(null)} />;
   }
@@ -155,6 +176,7 @@ export function ChatScreen() {
 
   const modeChips = (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 8, gap: 8 }} style={{ flexGrow: 0 }}>
+      {scene && <Chip label={`${scene.emoji} ${scene.title}`} active onPress={() => {}} />}
       {MODES.map((m) => <Chip key={m.id} label={m.label} active={m.id === mode.id} onPress={() => start(m)} />)}
     </ScrollView>
   );
@@ -197,7 +219,14 @@ export function ChatScreen() {
       {modeChips}
       <ScrollView ref={scroll} contentContainerStyle={s.pad} keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => scroll.current?.scrollToEnd()}>
-        {msgs.length === 0 && (
+        {scene && (
+          <View style={{ backgroundColor: C.primaryLight, borderRadius: 16, padding: 12, gap: 4 }}>
+            <Text style={[s.p, { fontWeight: "700" }]}>Сценка: {scene.title}</Text>
+            {scene.goals.map((g) => <Text key={g} style={s.muted}>• {g}</Text>)}
+            <Button title="Оценить сценку" disabled={msgs.filter((m) => m.role === "user").length < 3 || busy} onPress={() => setScoring(msgs)} />
+          </View>
+        )}
+        {msgs.length === 0 && !scene && (
           <View style={{ gap: 12, alignItems: "center" }}>
             <EmmaPic source={EMMA.hello} size={200} />
             <Text style={[s.p, { textAlign: "center" }]}>
@@ -209,7 +238,7 @@ export function ChatScreen() {
             </View>
           </View>
         )}
-        {msgs.map((m, n) => (
+        {msgs.map((m, n) => m.content.startsWith("(The student is ready") ? null : (
           <View key={n} style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "88%" }}>
             {m.role === "assistant" && <EmmaPic source={outfit(p.outfit).face} size={30} circle />}
             <Pressable onLongPress={() => m.role === "assistant" && say(m.content)}

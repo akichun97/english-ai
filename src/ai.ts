@@ -38,6 +38,22 @@ export async function askTeacher(
   messages: ChatMessage[],
   maxTokens = 2000,
 ): Promise<string> {
+  return ask(system, messages, maxTokens);
+}
+
+/** Ответ ИИ по фотографии (вывеска, меню, страница учебника). */
+export async function askPhotoJson<T>(system: string, prompt: string, base64: string, mediaType = "image/jpeg"): Promise<T> {
+  const text = await ask(system + "\nОтвечай ТОЛЬКО одним JSON-объектом, без пояснений и без ```.", [{
+    role: "user",
+    content: [
+      { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
+      { type: "text", text: prompt },
+    ],
+  }], 3000);
+  return JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1)) as T;
+}
+
+async function ask(system: string, messages: any[], maxTokens: number): Promise<string> {
   const c = await client();
   try {
     const res = await c.beta.messages.create({

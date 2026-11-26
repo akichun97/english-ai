@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { askJson, askTeacher } from "../ai";
 import { useApp } from "../state";
+import { isOnline } from "../network";
 import { EMMA, EmmaPic } from "../emma";
 import { speak as speakText } from "../voice";
 import { Exercise, Lesson } from "../data/lessons";
@@ -61,6 +62,13 @@ export function LessonScreen({
 
   async function submitText() {
     if (!ex || ex.kind === "choice") return;
+    if (!isOnline()) {
+      // Без интернета ИИ не проверит: показываем образец, ученик сверяется сам.
+      setCheck(ex.kind === "translate"
+        ? { correct: true, feedback: "Нет интернета, поэтому Emma не может проверить. Сравните свой ответ с образцом:", corrected: ex.example }
+        : { correct: true, feedback: "Нет интернета, поэтому Emma не может проверить ответ. Задание засчитано, проверить можно позже в разговоре с Emma." });
+      return;
+    }
     setBusy(true);
     try {
       const task = ex.kind === "translate" ? `Translate into ${lang.nameEn}: "${ex.ru}" (reference: "${ex.example}")` : ex.task;

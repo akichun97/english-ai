@@ -8,6 +8,7 @@ import { addDay, addXp, cur, goalStatus, loadProgress, Progress, saveProgress } 
 import { loadVocab, makeWord, mergeWords, saveVocab, Word } from "./vocab";
 import { loadMistakes, mergeMistakes, Mistake, saveMistakes, topMistakes } from "./mistakes";
 import { scheduleReminders } from "./reminders";
+import { Scene } from "./data/scenes";
 import { setVoicePrefs } from "./voice";
 
 export type Notice = { title: string; desc: string };
@@ -27,6 +28,8 @@ type Ctx = {
   addMistakes: (items: { topic?: string; wrong: string; right: string; why: string }[]) => void;
   weakSpots: string[]; // частые ошибки для подсказки Emma
   unlocked: Notice | null; // только что полученное достижение или образ
+  scene: Scene | null; // ролевая сценка, которую нужно открыть в разговоре
+  setScene: (s: Scene | null) => void;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
@@ -42,6 +45,7 @@ export function AppProvider({ children, fallback }: { children: (p: Progress) =>
   const [words, setW] = useState<Word[]>([]);
   const [mistakes, setM] = useState<Mistake[]>([]);
   const [unlocked, setUnlocked] = useState<Notice | null>(null);
+  const [scene, setScene] = useState<Scene | null>(null);
   const wordsRef = useRef(words);
   wordsRef.current = words;
 
@@ -130,6 +134,8 @@ export function AppProvider({ children, fallback }: { children: (p: Progress) =>
     addMistakes: (items) => setMistakes((m) => mergeMistakes(m, p.lang, items)),
     weakSpots: topMistakes(mistakes, p.lang, 4).filter((m) => m.count >= 2).map((m) => `${m.topic} (e.g. "${m.wrong}" → "${m.right}")`),
     unlocked,
+    scene,
+    setScene,
   };
   return <AppCtx.Provider value={ctx}>{children(p)}</AppCtx.Provider>;
 }

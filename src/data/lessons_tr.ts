@@ -182,4 +182,49 @@ export const LESSONS_TR: Lesson[] = [
       { kind: "write", task: "Напишите три плана на следующую неделю." },
     ],
   },
+  {
+    id: "tr-conditional",
+    lang: "tr",
+    title: "Если: условие -se / -sa",
+    emoji: "🤔",
+    level: "B2",
+    theory:
+      "Реальное условие: глагол в широком времени + -se/-sa: Zamanım olursa gelirim — если будет время, приду.\nНереальное: основа + -se + личное окончание: Param olsa ev alırdım — если бы были деньги, купил бы дом.\nKeşke + -se — «жаль, что не…»: Keşke Türkçe bilsem — жаль, что я не знаю турецкий.",
+    why:
+      "-sa после a, ı, o, u; -se после e, i, ö, ü. Личные окончания у условия короткие: -m, -n, —, -k, -niz, -ler: olsam, olsan, olsa.\nЧтение: ударение падает на слог перед -se: олУрса, гелсЕм.",
+    examples: [
+      { en: "Zamanım olursa gelirim.", ipa: "заманым олурса гелирим", ru: "Если будет время, я приду." },
+      { en: "Param olsa ev alırdım.", ipa: "парам олса эв алырдым", ru: "Будь у меня деньги, я бы купил дом." },
+      { en: "Keşke daha erken gelseydin.", ipa: "кешке даха эркен гелсейдин", ru: "Жаль, что ты не пришёл раньше." },
+    ],
+    exercises: [
+      { kind: "choice", question: "Yağmur yağar___, evde kalırız.", options: ["sa", "se", "di"], answer: 0 },
+      { kind: "choice", question: "Zengin ol___, dünyayı gezerdim.", options: ["sem", "sam", "dum"], answer: 1 },
+      { kind: "choice", question: "Keşke Türkçe bil___.", options: ["sam", "dim", "sem"], answer: 2 },
+      { kind: "translate", ru: "Если будет время, я приду.", example: "Zamanım olursa gelirim." },
+      { kind: "write", task: "Напишите, что бы вы сделали, если бы жили в Стамбуле (2–3 предложения)." },
+    ],
+  },
+  {
+    id: "tr-passive",
+    lang: "tr",
+    title: "Страдательный залог -il / -in",
+    emoji: "🏛",
+    level: "B2",
+    theory:
+      "Страдательный залог: основа + -il (-ıl, -ul, -ül): yap → yapıldı (было сделано), gönder → gönderildi (было отправлено).\nПосле гласной или l — -n: oku → okunur (читается), bil → bilinir (известно).\nBurada Türkçe konuşulur — здесь говорят по-турецки.",
+    why:
+      "Так говорят, когда важно действие, а не кто его сделал: в новостях, объявлениях, инструкциях. Залог стоит сразу после основы, потом время и лицо: yap-ıl-dı.\nЧтение: ударение на последний слог: япылдЫ.",
+    examples: [
+      { en: "Bu ev 1900 yılında yapıldı.", ipa: "бу эв бин докуз юз йылында япылды", ru: "Этот дом построили в 1900 году." },
+      { en: "Burada Türkçe konuşulur.", ipa: "бурада тюркче конушулур", ru: "Здесь говорят по-турецки." },
+      { en: "Kapı kapatıldı.", ipa: "капы капатылды", ru: "Дверь закрыли." },
+    ],
+    exercises: [
+      { kind: "choice", question: "Bu kitap çok oku___. (читается)", options: ["nur", "lur", "yor"], answer: 0, hint: "после гласной — -n" },
+      { kind: "choice", question: "Mektup dün gönder___.", options: ["ıldı", "ildi", "di"], answer: 1 },
+      { kind: "choice", question: "Burada sigara iç___. (здесь не курят)", options: ["mez", "ilir", "ilmez"], answer: 2 },
+      { kind: "translate", ru: "Этот дом построили в 1900 году.", example: "Bu ev 1900 yılında yapıldı." },
+    ],
+  },
 ];

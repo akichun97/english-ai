@@ -7,6 +7,7 @@ import { AppProvider, useApp } from "./src/state";
 import { addDay, addXp, maybeLevelUp } from "./src/storage";
 import { applyTheme, C, isDark, s } from "./src/ui";
 import { EMMA, EmmaPic } from "./src/emma";
+import { useOnline } from "./src/network";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { LessonScreen } from "./src/screens/LessonScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
@@ -58,6 +59,10 @@ function Main() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [keyboard, setKeyboard] = useState(false);
   const { addWords } = useApp();
+  const online = useOnline();
+  const { scene } = useApp();
+  // Сценку из «Практики» играем во вкладке «Разговор».
+  useEffect(() => { if (scene) setTab("chat"); }, [scene]);
 
   // Пока открыта клавиатура, нижнее меню прячем, чтобы поле ввода было видно.
   useEffect(() => {
@@ -71,6 +76,11 @@ function Main() {
 
   return (
     <View style={{ flex: 1 }}>
+      {!online && (
+        <View style={{ backgroundColor: C.cream, paddingHorizontal: 16, paddingVertical: 8 }}>
+          <Text style={{ color: C.text, fontSize: 13 }}>Нет интернета. Работают уроки, словарь, разговорник и тесты. Разговор с Emma вернётся, когда появится связь.</Text>
+        </View>
+      )}
       {unlocked && (
         <View style={{ position: "absolute", top: 8, left: 16, right: 16, zIndex: 10, backgroundColor: C.primary, borderRadius: 16, padding: 10,
           flexDirection: "row", alignItems: "center", gap: 10 }}>
